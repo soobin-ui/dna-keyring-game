@@ -259,7 +259,7 @@ body{background:linear-gradient(180deg,#BFE6D1 0,#E4F5EC 45%,#FFFFFF 100%) fixed
 html.on-home body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 18%,#5FB9A4 62%,#0F6F66 100%);background-attachment:fixed}
 .shelf{position:relative;width:100vw;margin-left:calc(50% - 50vw);height:min(26vw,calc(var(--vh)*13),130px);overflow:hidden;line-height:0}
 .shelf img{width:100%;height:100%;object-fit:cover;object-position:center bottom}
-.home .top{padding:clamp(4px,calc(var(--vh)*1),12px) var(--space-4) 0;font-size:clamp(10.5px,3.2vw,12px)}
+.home .top{padding:clamp(12px,calc(var(--vh)*2.4),24px) var(--space-4) 0;font-size:clamp(10.5px,3.2vw,12px)}
 .home .intro-h{padding:clamp(6px,calc(var(--vh)*1.6),16px) var(--space-4) 0}
 .home .intro-h h1{font-size:clamp(22px,min(8.6vw,calc(var(--vh)*4.6)),38px);margin-top:clamp(4px,calc(var(--vh)*1.2),12px)}
 .home .status{font-size:clamp(11.5px,3.4vw,13px)}
@@ -275,7 +275,7 @@ html.on-home body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 18%,#5FB9A
 .home .game .tm{font-size:clamp(13.5px,4vw,15px)}
 .home .cta .btn{padding:clamp(11px,calc(var(--vh)*2),16px) var(--space-4);font-size:clamp(16px,4.6vw,18px)}
 /* 높이가 모자라면 덜 중요한 것부터 숨김 */
-@media (max-height:780px){.home .intro-h p{display:none}}
+@media (max-height:700px){.home .intro-h p{display:none}}
 @media (max-height:600px){.home .game .dd{display:none}}
 @media (max-height:650px) and (max-width:370px){.home .game .dd{display:none}}
 @media (max-height:560px){.home .top{display:none}}
