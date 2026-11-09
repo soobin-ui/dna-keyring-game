@@ -37,71 +37,43 @@ def hue_shift(arr, box, h_from, h_to, h_new, s_min=0.25, v_min=0.15):
 
 
 def make_spot():
-    """v2(어렵게): 색 바꾸기 대신 '없어진 것·모양' 7곳. 다른 곳은 원본 픽셀 그대로."""
+    """v3: 7곳 (색 변경 없음). 지우기는 힉스필드 편집본(spot_edit_v1)에서 그 자리만 가져와 붙임 → 지운 티가 안 남.
+    코드로 만든 것: 시계 7시 눈금 · 파란 시험관 물 높이 · 비커 물 높이 · 화분 맨 위 잎
+    편집본에서 가져온 것: 가운데 서랍 손잡이 · 선반 왼쪽 받침대 · 오른쪽 병 코르크"""
     a = np.array(Image.open(os.path.join(RAW, 'spot_base_v1.png')).convert('RGB'))
+    e = np.array(Image.open(os.path.join(RAW, 'spot_edit_v1.png')).convert('RGB'))
     b = a.copy()
 
-    def hsv_mask(box, cond):
+    def paste_from_edit(box, feather=14):
+        nonlocal b
         x0, y0, x1, y1 = box
-        sub = b[y0:y1, x0:x1]
-        hsv = cv2.cvtColor(sub, cv2.COLOR_RGB2HSV_FULL).astype(np.float32)
-        h, s_, v = hsv[..., 0] * 360 / 255, hsv[..., 1] / 255, hsv[..., 2] / 255
-        m = np.zeros(b.shape[:2], np.uint8)
-        m[y0:y1, x0:x1] = cond(h, s_, v).astype(np.uint8) * 255
-        return m
-
-    def inpaint(mask, grow=5, r=9):
-        nonlocal b
-        if grow: mask = cv2.dilate(mask, np.ones((grow, grow), np.uint8))
-        b = cv2.inpaint(b, mask, r, cv2.INPAINT_TELEA)
-
-    # 1) 시계 7시 눈금 없애기
-    m = np.zeros(b.shape[:2], np.uint8); cv2.circle(m, (271, 562), 24, 255, -1); inpaint(m, 0, 7)
-    # 2) 포스터 DNA 초록·빨강 가로대 하나 없애기
-    rung = hsv_mask((955, 698, 1160, 758), lambda h, s_, v: (s_ > .30) & (((h > 80) & (h < 170)) | (h < 22) | (h > 345)))
-    rung = cv2.dilate(rung, np.ones((5, 5), np.uint8))
-    strand = hsv_mask((940, 690, 1180, 770), lambda h, s_, v: (s_ > .35) & (h > 185) & (h < 310))   # 파랑·보라 가닥은 보호
-    rung[strand > 0] = 0
-    inpaint(rung, 0, 5)
-    # 3) (아래 clone 함수 정의 + 파란 시험관 물 높이)
-    def clone(dst, src_dx, src_dy, feather=10):
-        nonlocal b
-        x0, y0, x1, y1 = dst
-        patch = a[y0 + src_dy:y1 + src_dy, x0 + src_dx:x1 + src_dx].astype(np.float32)
         hh, ww = y1 - y0, x1 - x0
         w = np.ones((hh, ww), np.float32)
         for i in range(feather):
             t = (i + 1) / (feather + 1)
             w[i, :] = np.minimum(w[i, :], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t)
             w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t)
-        b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
-    # 파란 시험관 물 높이 낮추기: 랙 위 빈 유리 줄을 아래로 이어 붙이고 수면을 50px 내림
+        b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + e[y0:y1, x0:x1] * w[..., None]).astype(np.uint8)
+
+    # 1) 시계 7시 눈금 없애기
+    m = np.zeros(b.shape[:2], np.uint8); cv2.circle(m, (271, 562), 24, 255, -1)
+    b = cv2.inpaint(b, m, 7, cv2.INPAINT_TELEA)
+    # 2~4) 편집본에서: 서랍 손잡이 · 선반 왼쪽 받침대 · 오른쪽 병 코르크
+    paste_from_edit((990, 1592, 1356, 1716))
+    paste_from_edit((1540, 655, 1670, 815))
+    paste_from_edit((2050, 196, 2225, 352))
+    # 5) 파란 시험관 물 높이 낮추기
     tx0, tx1, S, top = 960, 1046, 50, 1222
     src = b.copy()
     b[top + S:top + 30 + S, tx0:tx1] = src[top:top + 30, tx0:tx1]
     b[top:top + S, tx0:tx1] = src[1112:1112 + S, tx0:tx1]
-    # 4) 가운데 서랍 손잡이 없애기
-    clone((1000, 1590, 1173, 1716), -170, 0, 10)
-    clone((1173, 1590, 1346, 1716), 160, 0, 10)
-    clone((1150, 1590, 1196, 1716), -170, 0, 0)   # 두 조각 이음매는 깨끗한 쪽으로 한 번 더
-    # 5) 왼쪽 선반 받침대 없애기: 타일 한 칸 옆(오른쪽 235px)의 벽을 그대로 옮겨 붙임
-    x0, y0, x1, y1, dx = 1562, 668, 1648, 805, 235
-    patch = a[y0:y1, x0 + dx:x1 + dx].astype(np.float32)
-    w = np.ones((y1 - y0, x1 - x0), np.float32)
-    f = 8
-    for i in range(f):
-        t = (i + 1) / (f + 1)
-        w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t)
-    b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
-
-    # 6) 비커 물 높이 낮추기 (빈 유리 줄을 아래로 늘리고 수면을 내림)
+    # 6) 비커 물 높이 낮추기
     bx, by = P(520, 460)
     x0, x1 = bx + 40, bx + 318
     shift = 70
     src = b.copy()
     b[by + 165 + shift: by + 300, x0:x1] = src[by + 165: by + 300 - shift, x0:x1]
     b[by + 165: by + 165 + shift, x0:x1] = src[by + 95: by + 95 + shift, x0:x1]
-
     # 7) 화분 맨 위 잎 하나 없애기
     px, py = P(820, 390)
     sub = b[py: py + 330, px: px + 466]

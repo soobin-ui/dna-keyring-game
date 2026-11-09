@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=12';
+const V = '?v=13';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -167,7 +167,7 @@ function done() {
 // 좌표는 400×300 기준 (그림 1200×900)
 const DIFFS = [
   { x: 46, y: 97, r: 16, name: '시계 7시 눈금' },
-  { x: 181, y: 125, r: 18, name: '포스터 DNA 가로대' },
+  { x: 366, y: 45, r: 16, name: '오른쪽 병 코르크' },
   { x: 275, y: 126, r: 15, name: '선반 왼쪽 받침대' },
   { x: 172, y: 216, r: 17, name: '파란 시험관 물 높이' },
   { x: 234, y: 224, r: 24, name: '비커 물 높이' },
