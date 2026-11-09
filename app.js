@@ -81,11 +81,11 @@ function keyring() {
 function home() {
   const n = nextIdx(), all = n < 0;
   app.innerHTML = `<div class="home">
-  <div class="top"><span class="live">BIO PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
+  <div class="top"><span class="live">BIOHEALTH PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
   <header class="intro-h">
     <div class="intro-t">
       <span class="status"><i></i>온수조 처리 중</span>
-      <h1>내 DNA 키링이<br><span>만들어지는 중!</span></h1>
+      <h1>내 <em>DNA 키링</em>이<br>만들어지는 중!</h1>
       <p>실험을 하나 끝낼 때마다 키링이 조금씩 완성돼요.</p>
     </div>
     <div class="kr" id="kr" role="img" aria-label="키링 진행 ${GAMES.filter(g => run[g.id]).length}/3">
