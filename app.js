@@ -15,10 +15,10 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=25';
+const V = '?v=26';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
-  { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
+  { id: 'cards', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '같은 그림 카드 2장씩 찾아 짝 맞추기', time: '약 2분' },
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
@@ -106,7 +106,7 @@ function home() {
     ${GAMES.map((g, k) => {
       const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
       const v = run[g.id];
-      const note = st === 'ok' ? (g.id === 'spot' && String(v).includes(':') ? '✓ 완료' : `✓ 완료 · ${g.id === 'spot' ? `${v} 찾음` : `${v} 정답`}`) : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
+      const note = st === 'ok' ? (g.id === 'spot' && String(v).includes(':') ? '✓ 완료' : `✓ 완료 · ${g.id === 'ox' ? `${v} 정답` : `${v} 찾음`}`) : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
       return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
         <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${st === 'ok' ? '✓' : k + 1}</b></span>
         <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
@@ -692,12 +692,14 @@ function cards() {
     if (done) return;
     done = true; clearInterval(iv);
     const n = matched.size / 2, L = left();
-    setTimeout(() => sheet(`<div class="slip" role="dialog" aria-modal="true">
-      <div class="slip-top"><span>분석 리포트 · 카드 뒤집기</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
-      <h3 class="slip-h">${all ? '6쌍을 <span>모두</span> 찾았어요!' : `시간 종료! <span>${n}쌍</span> 찾았어요`}</h3>
-      <ul class="slip-rows"><li><span>찾은 짝</span><i></i><b>${n} / 6</b></li><li><span>뒤집은 횟수</span><i></i><b>${moves}번</b></li>${all ? `<li><span>남은 시간</span><i></i><b>${fmt(Math.ceil(L))}</b></li>` : ''}</ul>
-      <div class="slip-note"><span>게임 속 DNA 이야기</span><p>DNA는 우리 몸의 세포 하나하나에 들어 있어요.</p><p>한 가닥은 너무 가늘어 눈에 안 보이지만, 아주 많이 모이면 하얀 실처럼 보여요. 키링 속 하얀 가닥이 바로 그 모습이에요.</p></div>
-      <div class="slip-btns"><button class="btn line" data-go="#/cards">다시 하기</button><button class="btn" data-go="#/">처음으로</button></div></div>`), all ? 600 : 300);
+    store.cards = { best: Math.max((store.cards && store.cards.best) || 0, n) }; save(); markDone('cards', `${n}/6`);
+    setTimeout(() => report({
+      id: 'cards', code: 'EXP-02', icon: 'icon_pattern', again: '#/cards',
+      head: all ? '6쌍을 <span>모두</span> 찾았어요!' : `시간 종료! <span>${n}쌍</span> 찾았어요`,
+      rows: [['찾은 짝', `${n} / 6`], ['뒤집은 횟수', `${moves}번`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(CARD_TIME)], ['내 최고 기록', `${store.cards.best} / 6`]],
+      noteTitle: '게임 속 DNA 이야기',
+      note: 'DNA는 우리 몸의 세포 하나하나에 들어 있어요.|한 가닥은 너무 가늘어 눈에 안 보이지만, 아주 많이 모이면 하얀 실처럼 보여요. 키링 속 하얀 가닥이 바로 그 모습이에요.',
+    }), all ? 600 : 300);
   };
   $('cdGo').onclick = () => { $('cdOv').remove(); t0 = performance.now(); iv = setInterval(tick, 200); };
 }
