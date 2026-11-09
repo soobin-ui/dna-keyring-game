@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=22';
+const V = '?v=23';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -31,7 +31,7 @@ const markDone = (id, v) => { run[id] = v; saveRun(); };
 
 function bar(title, count = '') {
   const i = GAMES.findIndex(g => g.title === title);
-  return `<nav class="bar"><button class="bk" data-go="#/">← 처음</button><span class="bar-t"><em>실험 ${i + 1}/3</em>${title}</span><span class="bar-c" id="bc">${count}</span></nav>`;
+  return `<nav class="bar"><button class="bk" data-go="#/">← 처음</button><span class="bar-t">${i >= 0 ? `<em>실험 ${i + 1}/3</em>` : "<em>미리보기</em>"}${title}</span><span class="bar-c" id="bc">${count}</span></nav>`;
 }
 function sheet(html) {
   const d = document.createElement('div');
@@ -401,6 +401,128 @@ function ox() {
 }
 
 
+
+/* ================= 시안: DNA 설명서 해독 (캐릭터 만들기) — #/decode 로만 열림 ================= */
+const DC = [
+  { key: 'body', title: '몸 색', opts: [
+    { n: '초록 몸', code: 'GCA', c: '#7ED9B5' }, { n: '분홍 몸', code: 'AGT', c: '#FFA8C0' },
+    { n: '보라 몸', code: 'TTC', c: '#B9A2FF' }, { n: '하늘 몸', code: 'CAG', c: '#8CC8FF' }] },
+  { key: 'ears', title: '귀', opts: [
+    { n: '고양이 귀', code: 'ATG', k: 'cat' }, { n: '토끼 귀', code: 'GGA', k: 'rabbit' },
+    { n: '곰 귀', code: 'CTT', k: 'bear' }, { n: '더듬이', code: 'TAC', k: 'ant' }] },
+  { key: 'eyes', title: '눈 색', opts: [
+    { n: '파란 눈', code: 'CCG', c: '#3D8BF2' }, { n: '노란 눈', code: 'TGA', c: '#F4A62A' },
+    { n: '초록 눈', code: 'AAC', c: '#2BB673' }, { n: '갈색 눈', code: 'GTT', c: '#8B5A2B' }] },
+  { key: 'pat', title: '무늬', opts: [
+    { n: '줄무늬', code: 'TCG', k: 'stripe' }, { n: '점무늬', code: 'CAT', k: 'dot' },
+    { n: '하트', code: 'GAC', k: 'heart' }, { n: '볼터치', code: 'ACC', k: 'blush' }] },
+];
+const tileS = (c, cls = '') => `<span class="dt dt-${c} ${cls}">${c}</span>`;
+function charInner(tr, pop = '') {
+  const body = tr.body ? tr.body.c : '#D5DEDB';
+  const shade = 'rgba(23,50,58,.14)';
+  let ears = '';
+  const ek = tr.ears && tr.ears.k;
+  if (ek === 'cat') ears = `<path d="M30 40 L24 10 L50 30Z M90 40 L96 10 L70 30Z" fill="${body}" stroke="${shade}" stroke-width="2"/><path d="M33 34 L30 18 L44 30Z M87 34 L90 18 L76 30Z" fill="#FFB3C7"/>`;
+  if (ek === 'rabbit') ears = `<ellipse cx="44" cy="20" rx="9" ry="22" fill="${body}" stroke="${shade}" stroke-width="2"/><ellipse cx="76" cy="20" rx="9" ry="22" fill="${body}" stroke="${shade}" stroke-width="2"/><ellipse cx="44" cy="22" rx="4" ry="14" fill="#FFB3C7"/><ellipse cx="76" cy="22" rx="4" ry="14" fill="#FFB3C7"/>`;
+  if (ek === 'bear') ears = `<circle cx="32" cy="34" r="13" fill="${body}" stroke="${shade}" stroke-width="2"/><circle cx="88" cy="34" r="13" fill="${body}" stroke="${shade}" stroke-width="2"/><circle cx="32" cy="34" r="6" fill="#FFB3C7"/><circle cx="88" cy="34" r="6" fill="#FFB3C7"/>`;
+  if (ek === 'ant') ears = `<path d="M48 34 Q42 16 34 8 M72 34 Q78 16 86 8" fill="none" stroke="#17323A" stroke-width="3" stroke-linecap="round"/><circle cx="34" cy="8" r="6" fill="#FFC93B"/><circle cx="86" cy="8" r="6" fill="#FFC93B"/>`;
+  let pat = '';
+  const pk = tr.pat && tr.pat.k;
+  if (pk === 'stripe') pat = `<path d="M26 80 Q60 70 94 80 M24 94 Q60 84 96 94 M32 106 Q60 98 88 106" fill="none" stroke="${shade}" stroke-width="6" stroke-linecap="round"/>`;
+  if (pk === 'dot') pat = `<g fill="${shade}"><circle cx="34" cy="86" r="5"/><circle cx="52" cy="96" r="4"/><circle cx="72" cy="94" r="5"/><circle cx="88" cy="84" r="4"/><circle cx="60" cy="108" r="4"/><circle cx="40" cy="104" r="3"/><circle cx="82" cy="104" r="3"/></g>`;
+  if (pk === 'heart') pat = `<path d="M60 108 C40 96 44 82 54 84 C58 85 60 89 60 89 C60 89 62 85 66 84 C76 82 80 96 60 108Z" fill="#FF6B8A"/>`;
+  if (pk === 'blush') pat = `<ellipse cx="36" cy="80" rx="8" ry="5" fill="#FF8FA8" opacity=".8"/><ellipse cx="84" cy="80" rx="8" ry="5" fill="#FF8FA8" opacity=".8"/>`;
+  const iris = tr.eyes ? tr.eyes.c : '#17323A';
+  const r = tr.eyes ? 7 : 5;
+  const q = !tr.body ? '<text x="60" y="104" text-anchor="middle" font-size="22" font-weight="800" fill="#9AAAA6" font-family="sans-serif">?</text>' : '';
+  const P = k => pop === 'p-' + k ? 'pop' : '';
+  return `<g class="${P('ears')}">${ears}</g>
+    <ellipse class="${P('body')}" cx="60" cy="76" rx="42" ry="40" fill="${body}" stroke="${shade}" stroke-width="2"/>
+    <g class="${P('pat')}">${pat}</g>
+    <g class="${P('eyes')}"><circle cx="46" cy="64" r="11" fill="#fff"/><circle cx="74" cy="64" r="11" fill="#fff"/>
+    <circle cx="47" cy="65" r="${r}" fill="${iris}"/><circle cx="75" cy="65" r="${r}" fill="${iris}"/>
+    <circle cx="49" cy="62" r="2.2" fill="#fff"/><circle cx="77" cy="62" r="2.2" fill="#fff"/></g>
+    <path d="M52 82 Q60 89 68 82" fill="none" stroke="#17323A" stroke-width="3" stroke-linecap="round"/>${q}`;
+}
+const charSVG = (tr, pop = '') => `<svg class="dc-char" viewBox="0 0 120 124" aria-hidden="true">${charInner(tr, pop)}</svg>`;
+function decode() {
+  const pick = DC.map(cat => cat.opts[Math.floor(Math.random() * cat.opts.length)]);
+  const tr = {};
+  let step = 0, firstTry = 0, wrongNow = 0;
+  const sample = { body: DC[0].opts[0], ears: DC[1].opts[0], eyes: DC[2].opts[0], pat: DC[3].opts[3] };
+  app.innerHTML = bar('DNA 설명서 해독') + `<main class="g dc" data-fit>
+    <div class="dc-top">
+      <div class="dc-char-box" id="dcChar">${charSVG(tr)}</div>
+      <div class="dc-prog"><span>내 DNA 캐릭터</span><b id="dcStep">0</b><i>/ 4 완성</i>
+        <p class="dc-got" id="dcGot">아직 아무것도 없어요</p></div>
+    </div>
+    <div class="dc-dna">
+      <div class="dc-dna-h"><span>내 DNA (짝꿍 줄)</span><span class="dc-rule">A↔T · G↔C</span></div>
+      <div class="dc-codons" id="dcCodons"></div>
+      <p class="dc-hint" id="dcHint"></p>
+    </div>
+    <div class="dc-table-h" id="dcTH"></div>
+    <div class="dc-table" id="dcTable"></div>
+  </main>
+  <div class="sp-ov" id="dcOv"><div class="sp-card" role="dialog" aria-modal="true">
+    <svg class="dc-char" viewBox="0 0 120 124" style="width:88px;height:90px;margin:0 auto 2px;display:block">${charInner(sample)}</svg>
+    <h2>DNA로 <em>캐릭터</em> 만들기</h2>
+    <ol class="sp-how">
+      <li><span class="dc-mini">${tileS('C')}${tileS('G')}${tileS('T')}</span><span>3글자를<br>읽고</span></li>
+      <li><span class="dc-mini">${tileS('C')}<b>→</b>${tileS('G')}</span><span>짝꿍으로<br>바꿔서</span></li>
+      <li><span class="dc-mini"><svg viewBox="0 0 40 32" width="40" height="32"><rect x="3" y="3" width="34" height="26" rx="4" fill="#fff" stroke="#17323A" stroke-width="2.4"/><path d="M9 11h12M9 17h18M9 23h10" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/></svg></span><span>암호표에서<br>찾기</span></li>
+    </ol>
+    <button class="btn sp-go" id="dcGo">시작하기</button></div></div>`;
+  document.getElementById('dcGo').onclick = () => document.getElementById('dcOv').remove();
+  const render = () => {
+    document.getElementById('dcCodons').innerHTML = pick.map((o, i) => {
+      const shown = comp(o.code);
+      return `<div class="dc-codon ${i < step ? 'done' : i === step ? 'now' : ''}">${[...shown].map(c => tileS(c)).join('')}${i < step ? '<em>✓</em>' : ''}</div>`;
+    }).join('');
+    if (step >= DC.length) return;
+    const cat = DC[step];
+    document.getElementById('dcTH').innerHTML = `<b>${cat.title}</b> 암호표 <span>· 짝꿍으로 바꾼 3글자를 찾아 누르세요</span>`;
+    document.getElementById('dcTable').innerHTML = cat.opts.map((o, i) => `<button class="dc-opt" data-i="${i}">
+      <span class="dc-code">${[...o.code].map(c => tileS(c, 'sm')).join('')}</span><span class="dc-n">${o.c ? `<i style="background:${o.c}"></i>` : ''}${o.n}</span></button>`).join('');
+    document.getElementById('dcHint').textContent = '';
+    wrongNow = 0;
+    document.querySelectorAll('.dc-opt').forEach(btn => { btn.onclick = () => choose(+btn.dataset.i, btn); });
+  };
+  const choose = (i, btn) => {
+    const cat = DC[step], o = cat.opts[i];
+    if (o === pick[step]) {
+      if (!wrongNow) firstTry++;
+      tr[cat.key] = o; buzz(30);
+      btn.classList.add('right');
+      document.getElementById('dcChar').innerHTML = charSVG(tr, 'p-' + cat.key);
+      step++;
+      document.getElementById('dcStep').textContent = step;
+      document.getElementById('dcGot').textContent = DC.filter(c => tr[c.key]).map(c => tr[c.key].n).join(' · ');
+      setTimeout(() => (step < DC.length ? render() : finish()), 650);
+    } else {
+      wrongNow++; buzz([20, 60, 20]);
+      btn.classList.remove('wrong'); void btn.offsetWidth; btn.classList.add('wrong');
+      const shown = comp(pick[step].code);
+      document.getElementById('dcHint').innerHTML = wrongNow >= 2
+        ? `힌트: ${shown} 의 짝꿍은 <b>${pick[step].code}</b>`
+        : `앗! 짝꿍으로 바꿨나요? (예: ${shown[0]} → ${PAIR[shown[0]]})`;
+    }
+  };
+  const finish = () => {
+    render();
+    const codeStr = pick.map(o => o.code).join('-');
+    sheet(`<div class="slip" role="dialog" aria-modal="true">
+      <div class="dc-final">${charSVG(tr)}</div>
+      <h3 class="slip-h">내 DNA <span>캐릭터</span> 완성!</h3>
+      <p class="slip-sub">${pick.map(o => o.n).join(' · ')}</p>
+      <ul class="slip-rows"><li><span>내 DNA 암호</span><i></i><b>${codeStr}</b></li><li><span>한 번에 맞힌 것</span><i></i><b>${firstTry} / 4</b></li></ul>
+      <div class="slip-note"><span>게임 속 DNA 이야기</span><p>세포는 DNA 글자를 세 개씩 묶어서 읽어요. 이 세 글자 묶음을 ‘코돈’이라고 해요.</p><p>코돈을 순서대로 읽어 단백질을 만들고, 이 단백질들이 모여 눈동자 색 같은 우리 몸의 특징을 만들어요.</p></div>
+      <div class="slip-btns"><button class="btn line" data-go="#/decode">다시 만들기</button><button class="btn" data-go="#/">처음으로</button></div></div>`);
+  };
+  render();
+}
+
 /* ================= 휴대폰 크기에 맞춰 통째로 확대·축소 ================= */
 const BASE_W = 390, MAX_Z = 1.7;
 function fit() {
@@ -428,7 +550,7 @@ function route() {
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
-  const fn = { spot, pattern, ox, done }[h] || home;
+  const fn = { spot, pattern, ox, done, decode }[h] || home;
   document.documentElement.classList.toggle('on-home', fn === home);
   fn();
   fit();
