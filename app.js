@@ -15,10 +15,10 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=26';
+const V = '?v=27';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
-  { id: 'cards', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '같은 그림 카드 2장씩 찾아 짝 맞추기', time: '약 2분' },
+  { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '같은 그림 카드 2장씩 찾아 짝 맞추기', time: '약 2분' },
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
@@ -694,7 +694,7 @@ function cards() {
     const n = matched.size / 2, L = left();
     store.cards = { best: Math.max((store.cards && store.cards.best) || 0, n) }; save(); markDone('cards', `${n}/6`);
     setTimeout(() => report({
-      id: 'cards', code: 'EXP-02', icon: 'icon_pattern', again: '#/cards',
+      id: 'cards', code: 'EXP-02', icon: 'icon_cards', again: '#/cards',
       head: all ? '6쌍을 <span>모두</span> 찾았어요!' : `시간 종료! <span>${n}쌍</span> 찾았어요`,
       rows: [['찾은 짝', `${n} / 6`], ['뒤집은 횟수', `${moves}번`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(CARD_TIME)], ['내 최고 기록', `${store.cards.best} / 6`]],
       noteTitle: '게임 속 DNA 이야기',
