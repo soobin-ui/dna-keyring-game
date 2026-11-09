@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=19';
+const V = '?v=20';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -183,7 +183,9 @@ function playSpot() {
     const L = left();
     tm.textContent = fmt(Math.ceil(L));
     barEl.style.width = (L / SPOT_TIME * 100).toFixed(2) + '%';
+    if (L <= 30 && !st.classList.contains('low')) buzz([60, 60, 60]);
     st.classList.toggle('low', L <= 30);
+    st.classList.toggle('last', L <= 10);
     if (L <= 0) finish(false);
   };
   let iv = 0;
