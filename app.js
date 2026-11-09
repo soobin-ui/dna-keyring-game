@@ -85,7 +85,7 @@ function report({ id, code, icon, head, rows, note, again }) {
 function home() {
   const n = nextIdx(), all = n < 0;
   app.innerHTML = `<div class="home">
-  <div class="top"><span class="live"><i></i>BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
+  <div class="top"><span class="live">BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
   <header class="intro-h">
     <div class="intro-t">
       <span class="status"><i></i>온수조 처리 중</span>
