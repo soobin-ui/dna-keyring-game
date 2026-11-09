@@ -59,9 +59,47 @@ def make_spot():
     m = np.zeros(b.shape[:2], np.uint8); cv2.circle(m, (271, 562), 24, 255, -1)
     b = cv2.inpaint(b, m, 7, cv2.INPAINT_TELEA)
     # 2~4) 편집본에서: 서랍 손잡이 · 선반 왼쪽 받침대 · 오른쪽 병 코르크
-    paste_from_edit((990, 1592, 1356, 1716))
-    paste_from_edit((1540, 655, 1670, 815))
-    paste_from_edit((2050, 196, 2225, 352))
+    def match_tone(src, ref, mask):
+        """src(편집본)의 색을 ref(원본)에 맞춤: 채널별 gain·offset을 mask 영역에서 구함"""
+        out = src.astype(np.float32).copy()
+        for c in range(3):
+            s_ = src[..., c][mask].astype(np.float32); r_ = ref[..., c][mask].astype(np.float32)
+            g = r_.std() / max(s_.std(), 1e-3); o = r_.mean() - g * s_.mean()
+            out[..., c] = out[..., c] * g + o
+        return out.clip(0, 255)
+
+    # 2) 가운데 서랍 손잡이: 서랍 앞판 전체(틈새 선 안쪽)를 편집본으로, 원본 색에 맞춰서
+    x0, y0, x1, y1 = 760, 1594, 1578, 1744
+    m = np.ones((y1 - y0, x1 - x0), bool)
+    m[1608 - y0:1712 - y0, 1020 - x0:1330 - x0] = False          # 손잡이·그림자 자리는 색 맞춤 계산에서 제외
+    patch = match_tone(e[y0:y1, x0:x1], a[y0:y1, x0:x1], m)
+    w = np.ones((y1 - y0, x1 - x0), np.float32)
+    for i in range(6):
+        t = (i + 1) / 7
+        w[i, :] = np.minimum(w[i, :], t); w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t)
+    b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
+
+    # 3) 선반 왼쪽 받침대: 바로 오른쪽 타일(받침대 없음)을 줄눈 안쪽 크기에 맞춰 그대로 옮김 → 원본 픽셀만 사용
+    dst = (1531, 670, 1765, 806)
+    src_t = a[670:806, 1772:1998]
+    tile = cv2.resize(src_t, (dst[2] - dst[0], dst[3] - dst[1]), interpolation=cv2.INTER_CUBIC)
+    w = np.ones((dst[3] - dst[1], dst[2] - dst[0]), np.float32)
+    for i in range(3):
+        t = (i + 1) / 4
+        w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t)
+    reg = b[dst[1]:dst[3], dst[0]:dst[2]].astype(np.float32)
+    b[dst[1]:dst[3], dst[0]:dst[2]] = (reg * (1 - w[..., None]) + tile * w[..., None]).astype(np.uint8)
+
+    # 4) 오른쪽 병 코르크: 편집본에서, 둘레 벽색에 맞춰서
+    x0, y0, x1, y1 = 2050, 196, 2225, 352
+    m = np.ones((y1 - y0, x1 - x0), bool)
+    m[22:150, 20:160] = False
+    patch = match_tone(e[y0:y1, x0:x1], a[y0:y1, x0:x1], m)
+    w = np.ones((y1 - y0, x1 - x0), np.float32)
+    for i in range(14):
+        t = (i + 1) / 15
+        w[i, :] = np.minimum(w[i, :], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t); w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t)
+    b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
     # 5) 파란 시험관 물 높이 낮추기
     tx0, tx1, S, top = 960, 1046, 50, 1222
     src = b.copy()
