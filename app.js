@@ -14,16 +14,12 @@ const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e)
 let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
-// 실험실 색 (SVG 그림용 — style.css :root 와 같은 값)
-const C = { white: '#FAFCFC', ink: '#16252C', steel: '#C9D3D7', steel2: '#9AA8AE', tile: '#DCE4E7', screen: '#0F1C21', lcd: '#3FE3D2',
-  teal: '#0B8F8C', water: '#BFE3F0', A: '#2BB673', T: '#E5484D', G: '#F2A51A', C: '#3B7BF6' };
-// 색 면 위에 윤곽선을 한 번 더 그림
-const layered = (shapes, top = '') => `<g class="fills">${shapes}</g><g class="lines">${shapes}</g>${top}`;
-
+const C = { teal: '#0E9F8E', coral: '#EF5350' };
+const V = '?v=3';
 const GAMES = [
-  { id: 'spot', code: 'EXP-01', cap: C.A, title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '5–7분' },
-  { id: 'pattern', code: 'EXP-02', cap: C.T, title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '4–5분' },
-  { id: 'ox', code: 'EXP-03', cap: C.C, title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '3–5분' },
+  { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
+  { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
+  { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
 function bar(title, count = '') {
@@ -37,8 +33,9 @@ function sheet(html) {
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
-function report({ code, head, rows, note, again }) {
+function report({ code, icon, head, rows, note, again }) {
   return sheet(`<div class="slip" role="dialog" aria-modal="true">
+    <img class="slip-art" src="img/${icon}.png${V}" alt="">
     <div class="slip-top"><span>분석 리포트 · ${code}</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
     <h3 class="slip-h">${head}</h3>
     <ul class="slip-rows">${rows.map(([k, v]) => `<li><span>${k}</span><i></i><b>${v}</b></li>`).join('')}</ul>
@@ -48,131 +45,38 @@ function report({ code, head, rows, note, again }) {
 }
 
 /* ================= 첫 화면 ================= */
-function bathSVG() {
-  const tubes = [C.A, C.T, C.G, C.C].map((c, i) => { const x = 54 + i * 40;
-    return `<rect x="${x}" y="26" width="16" height="44" rx="8" fill="${C.white}"/><rect x="${x - 2}" y="18" width="20" height="10" rx="2" fill="${c}"/>`; }).join('');
-  const S = `
-    ${tubes}
-    <rect x="22" y="58" width="208" height="14" rx="3" fill="${C.water}"/>
-    <rect x="10" y="64" width="320" height="104" rx="10" fill="${C.tile}"/>
-    <rect x="236" y="80" width="80" height="38" rx="4" fill="${C.screen}"/>
-    <circle cx="256" cy="144" r="10" fill="${C.white}"/>
-    <circle cx="296" cy="144" r="10" fill="${C.white}"/>
-    <rect x="34" y="166" width="22" height="8" rx="2" fill="${C.steel2}"/><rect x="284" y="166" width="22" height="8" rx="2" fill="${C.steel2}"/>`;
-  const top = `
-    <path d="M22 64h208" stroke="${C.ink}" stroke-width="1.8"/>
-    <g fill="none" stroke="${C.steel2}" stroke-width="2.2" stroke-linecap="round">
-      <path class="steam" d="M78 52q-5-7 0-13t0-13"/><path class="steam" d="M138 52q-5-7 0-13t0-13"/><path class="steam" d="M198 52q-5-7 0-13t0-13"/>
-    </g>
-    <text x="28" y="96" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="700" fill="${C.ink}" letter-spacing="1.5">WATER BATH</text>
-    <text x="28" y="110" font-family="IBM Plex Sans KR,sans-serif" font-size="9.5" fill="#4A5B63">항온 수조</text>
-    <g stroke="${C.steel2}" stroke-width="2" stroke-linecap="round"><path d="M30 132h150M30 140h150M30 148h150"/></g>
-    <text x="244" y="97" font-family="Orbit,monospace" font-size="10.5" fill="${C.lcd}">온수 처리 중</text>
-    <circle class="blink" cx="244" cy="108" r="2.5" fill="${C.lcd}"/>
-    <text x="252" y="111" font-family="Orbit,monospace" font-size="8.5" fill="#2A7F78">DNA KEYRING</text>
-    <path d="M256 144v-6M296 144l4-4" stroke="${C.ink}" stroke-width="2" stroke-linecap="round"/>
-    <circle class="blink" cx="318" cy="76" r="3" fill="${C.T}"/>`;
-  return `<svg class="bath" viewBox="0 0 340 180" aria-hidden="true">${layered(S, top)}</svg>`;
-}
 function home() {
   app.innerHTML = `
-  <div class="lab-head"><span><i class="dot"></i>BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
+  <div class="top"><span class="live"><i></i>BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
   <header class="intro-h">
     <h1>DNA 키링 완성까지<br><span>약 20분</span></h1>
     <p>키링은 지금 온수조에서 처리 중이에요. 기다리는 동안 아래 실험 중 하나를 골라 해 보세요.</p>
   </header>
-  ${bathSVG()}
+  <div class="hero"><img src="img/hero.jpg${V}" alt="온수조에서 처리 중인 시험관과 DNA 키링이 놓인 실험대" width="1200" height="896"></div>
   <section class="pick">
-    <div class="pick-h"><h2>실험 하나 고르기</h2><span>SELECT 1 OF 3</span></div>
-    ${GAMES.map(g => `<button class="label" data-go="#/${g.id}">
-      <span class="label-top"><span class="cap" style="background:${g.cap}"></span>${g.code}<span class="barcode" aria-hidden="true"></span></span>
-      <span class="label-main">
-        <span><span class="label-t">${g.title}</span><span class="label-d">${g.desc}</span></span>
-        <span class="label-go">${g.time}<i>→</i></span>
-      </span>
+    <h2>실험 하나 고르기<small>3개 중 1개</small></h2>
+    ${GAMES.map(g => `<button class="game" data-go="#/${g.id}">
+      <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"></span>
+      <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${g.time}</span></span>
+      <span class="go">→</span>
     </button>`).join('')}
   </section>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>`;
 }
 
 /* ================= 게임 1: 틀린그림찾기 ================= */
+// 좌표는 400×300 기준 (그림 1200×900)
 const DIFFS = [
-  { x: 88, y: 40, r: 20, name: '창밖의 해' },
-  { x: 171, y: 62, r: 36, name: '포스터 테두리 색' },
-  { x: 240, y: 44, r: 23, name: '시계 바늘' },
-  { x: 335, y: 80, r: 21, name: '삼각 플라스크 색' },
-  { x: 190, y: 152, r: 21, name: '시험관 1개' },
-  { x: 266, y: 166, r: 27, name: '비커 물 높이' },
-  { x: 356, y: 134, r: 24, name: '화분의 꽃' },
+  { x: 61, y: 69, r: 42, name: '시계 바늘' },
+  { x: 180, y: 84, r: 50, name: '포스터 DNA 가닥 색' },
+  { x: 366, y: 90, r: 22, name: '선반 병 색' },
+  { x: 136, y: 186, r: 17, name: '시험관 뚜껑 색' },
+  { x: 234, y: 224, r: 27, name: '비커 물 높이' },
+  { x: 298, y: 231, r: 26, name: '페트리 접시 색' },
+  { x: 363, y: 163, r: 24, name: '화분 잎 하나' },
 ];
-function labSVG(B) {
-  const tubeCols = [C.A, C.T, C.G, C.C];
-  const tubes = [150, 170, 190, 210].map((x, i) => (B && i === 2) ? '' :
-    `<rect x="${x - 5.5}" y="124" width="11" height="58" rx="5.5" fill="${C.white}"/><rect x="${x - 5.5}" y="146" width="11" height="36" rx="5.5" fill="${tubeCols[i]}"/>`).join('');
-  const S = `
-    <rect x="18" y="18" width="92" height="72" rx="2" fill="${C.white}"/>
-    <rect x="25" y="25" width="78" height="58" fill="${C.water}"/>
-    ${B ? '' : `<circle cx="88" cy="40" r="10" fill="${C.G}"/>`}
-    <path d="M33 74q0-8 9-7q3-8 12-5q8-2 9 6q7 0 6 6z" fill="${C.white}"/>
-    <rect x="132" y="12" width="78" height="102" rx="2" fill="${B ? C.T : C.teal}"/>
-    <rect x="139" y="19" width="64" height="88" fill="${C.white}"/>
-    <circle cx="240" cy="44" r="22" fill="${C.white}"/>
-    <rect x="282" y="96" width="108" height="7" rx="1" fill="${C.steel}"/>
-    <path d="M296 56h8v14.5a13 13 0 1 1-8 0z" fill="${C.white}"/>
-    <path d="M287.2 84a12.8 12.8 0 0 0 25.6 0z" fill="${C.T}"/>
-    <path d="M331 58h8v13l10 25h-28l10-25z" fill="${C.white}"/>
-    <path d="M326.5 82h17l5.5 14h-28z" fill="${B ? C.G : C.A}"/>
-    <rect x="360" y="66" width="17" height="30" rx="2" fill="${C.C}" fill-opacity=".75"/>
-    <rect x="363" y="59" width="11" height="7" fill="${C.ink}"/>
-    <rect x="362" y="76" width="13" height="9" fill="${C.white}"/>
-    <rect x="-5" y="192" width="410" height="11" fill="${C.steel2}"/>
-    <rect x="-5" y="203" width="410" height="102" fill="${C.tile}"/>
-    <rect x="18" y="216" width="172" height="74" rx="3" fill="${C.white}"/>
-    <rect x="210" y="216" width="172" height="74" rx="3" fill="${C.white}"/>
-    <rect x="173" y="240" width="6" height="24" rx="3" fill="${C.steel2}"/><rect x="221" y="240" width="6" height="24" rx="3" fill="${C.steel2}"/>
-    <rect x="38" y="182" width="64" height="10" rx="2" fill="${C.white}"/>
-    <path d="M82 182V150q0-22-17-29l4-9q23 9 23 38v32z" fill="${C.white}"/>
-    <rect x="44" y="146" width="50" height="6" fill="${C.ink}"/>
-    <g transform="rotate(-22 60 122)"><rect x="52" y="104" width="17" height="34" fill="${C.white}"/><rect x="50" y="95" width="21" height="10" fill="${C.ink}"/><rect x="56" y="137" width="9" height="9" fill="${C.steel2}"/></g>
-    <circle cx="90" cy="163" r="6" fill="${C.teal}"/>
-    <ellipse cx="122" cy="189" rx="15" ry="4.5" fill="${C.white}"/>
-    ${tubes}
-    <rect x="136" y="162" width="90" height="8" fill="${C.steel}"/>
-    <rect x="136" y="170" width="90" height="22" fill="${C.white}"/>
-    <rect x="247" y="${B ? 177 : 151}" width="38" height="${B ? 12 : 38}" fill="${C.water}"/>
-    <path d="M244 134h44v52a6 6 0 0 1-6 6h-32a6 6 0 0 1-6-6z" fill="none"/>
-    <ellipse cx="345" cy="150" rx="11" ry="5" transform="rotate(-28 345 150)" fill="${C.A}"/>
-    <ellipse cx="367" cy="146" rx="11" ry="5" transform="rotate(28 367 146)" fill="${C.A}"/>
-    <ellipse cx="347" cy="134" rx="9" ry="4.5" transform="rotate(-35 347 134)" fill="${C.A}"/>
-    <ellipse cx="365" cy="132" rx="9" ry="4.5" transform="rotate(35 365 132)" fill="${C.A}"/>
-    ${B ? `<circle cx="356" cy="116" r="5.5" fill="${C.T}"/><circle cx="363" cy="122" r="5.5" fill="${C.T}"/><circle cx="349" cy="122" r="5.5" fill="${C.T}"/><circle cx="356" cy="128" r="5.5" fill="${C.T}"/>` : ''}
-    <path d="M340 168h32l-4 24h-24z" fill="${C.white}"/>
-    <rect x="336" y="162" width="40" height="8" fill="${C.steel}"/>`;
-  // 벽 타일 줄눈
-  let grout = '';
-  for (let y = 24; y < 192; y += 24) grout += `M0 ${y}H400`;
-  for (let x = 24; x < 400; x += 24) grout += `M${x} 0V192`;
-  let hp1 = '', hp2 = '', rungs = '';
-  for (let i = 0; i <= 24; i++) { const y = 28 + i * 2.6, a = Math.sin(i / 24 * Math.PI * 2.2); hp1 += (i ? 'L' : 'M') + (171 + 16 * a).toFixed(1) + ',' + y.toFixed(1); hp2 += (i ? 'L' : 'M') + (171 - 16 * a).toFixed(1) + ',' + y.toFixed(1); }
-  [C.A, C.T, C.G, C.C, C.A, C.G, C.T].forEach((c, k) => { const i = 1.6 + k * 3.3, y = 28 + i * 2.6, a = Math.sin(i / 24 * Math.PI * 2.2); rungs += `<line x1="${(171 + 16 * a).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(171 - 16 * a).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="3.4" stroke-linecap="round"/>`; });
-  const top = `
-    <path d="M64 25V83M25 54H103" stroke="${C.ink}" stroke-width="1.8"/>
-    ${rungs}
-    <path d="${hp1}" fill="none" stroke="${C.ink}" stroke-width="2.4" stroke-linecap="round"/>
-    <path d="${hp2}" fill="none" stroke="${C.ink}" stroke-width="2.4" stroke-linecap="round"/>
-    <text x="171" y="103" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C.ink}" font-family="IBM Plex Mono,monospace">DNA</text>
-    <g fill="${C.ink}"><circle cx="240" cy="27.5" r="1.8"/><circle cx="256.5" cy="44" r="1.8"/><circle cx="240" cy="60.5" r="1.8"/><circle cx="223.5" cy="44" r="1.8"/></g>
-    <path d="M240 44V30" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/>
-    <path d="${B ? 'M240 44H228' : 'M240 44H252'}" stroke="${C.T}" stroke-width="3.8" stroke-linecap="round"/>
-    <circle cx="240" cy="44" r="2.6" fill="${C.ink}"/>
-    <path d="M296 103v9h8M376 103v9h-8" stroke="${C.steel2}" stroke-width="2" fill="none"/>
-    <path d="M249 150h7M249 162h7M249 174h7" stroke="${C.ink}" stroke-width="1.6"/>
-    <g fill="${C.T}"><circle cx="116" cy="188.5" r="1.7"/><circle cx="124" cy="190" r="1.7"/><circle cx="128" cy="188" r="1.4"/></g>
-    <path d="M356 162V127" stroke="${C.ink}" stroke-width="2"/>
-    ${B ? `<circle cx="356" cy="122" r="3.6" fill="${C.G}" stroke="${C.ink}" stroke-width="1.6"/>` : ''}`;
-  return `<svg class="lab" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
-    <rect width="400" height="300" fill="${C.white}"/><path d="${grout}" stroke="${C.tile}" stroke-width="1.5"/>${layered(S, top)}<g class="marks"></g></svg>`;
-}
+const shotSVG = B => `<svg class="shot" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
+  <image href="img/spot_${B ? 'b' : 'a'}.jpg${V}" width="400" height="300"/><g class="marks"></g></svg>`;
 function spot() {
   const found = new Set();
   let hints = 0, done = false;
@@ -180,12 +84,12 @@ function spot() {
   app.innerHTML = bar('틀린그림찾기', '0/7') + `
   <main class="g">
     <p class="ins"><span>두 그림에서 <b>다른 곳</b>을 눌러요</span><span class="clock" id="tm">0:00</span></p>
-    <figure class="pic"><figcaption>관찰 A</figcaption>${labSVG(false)}</figure>
-    <figure class="pic"><figcaption>관찰 B</figcaption>${labSVG(true)}</figure>
+    <figure class="pic"><figcaption>그림 A</figcaption>${shotSVG(false)}</figure>
+    <figure class="pic"><figcaption>그림 B</figcaption>${shotSVG(true)}</figure>
     <div class="ticks" id="ticks">${DIFFS.map(() => '<i></i>').join('')}<span id="tk">0 / 7</span></div>
     <button class="btn line" id="hint">잘 모르겠어요 · 힌트</button>
   </main>`;
-  const svgs = [...app.querySelectorAll('svg.lab')];
+  const svgs = [...app.querySelectorAll('svg.shot')];
   const tm = document.getElementById('tm');
   const iv = setInterval(() => { if (!done) tm.textContent = fmt((performance.now() - t0) / 1000); }, 250);
   onCleanup(() => clearInterval(iv));
@@ -228,7 +132,7 @@ function spot() {
     const best = store.spot ? Math.min(store.spot.best, sec) : sec;
     store.spot = { best }; save();
     setTimeout(() => report({
-      code: 'EXP-01', again: '#/spot',
+      code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
       head: `다른 곳 7개를 <span>모두</span> 찾았어요!`,
       rows: [['찾은 곳', '7 / 7'], ['걸린 시간', fmt(sec)], ['힌트', `${hints}회`], ['내 최고 기록', fmt(best)]],
       note: '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
@@ -319,7 +223,7 @@ function pattern() {
     const best = store.pattern ? Math.max(store.pattern.best, score) : score;
     store.pattern = { best, total }; save();
     report({
-      code: 'EXP-02', again: '#/pattern',
+      code: 'EXP-02', icon: 'icon_pattern', again: '#/pattern',
       head: score === total ? `<span>${total}문제</span> 모두 정답!` : `${total}문제 중 <span>${score}개</span> 정답`,
       rows: [['똑같은 줄', '5문제'], ['짝꿍 줄', '3문제'], ['걸린 시간', fmt(sec)], ['내 최고 점수', `${best} / ${total}`]],
       note: 'DNA의 두 줄은 항상 A–T, G–C로 짝을 지어요. 그래서 세포가 둘로 나뉠 때 한 줄만 보고도 나머지 한 줄을 똑같이 만들어 낼 수 있어요.',
@@ -345,7 +249,7 @@ const POOL = [
   { q: 'DNA는 \'디옥시리보핵산\'의 줄임말이다.', a: true, e: '영어 DeoxyriboNucleic Acid의 앞 글자를 따서 DNA라고 불러요.' },
 ];
 const O_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="26" fill="none" stroke="${C.teal}" stroke-width="11"/></svg>`;
-const X_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M18 18 62 62M62 18 18 62" stroke="${C.T}" stroke-width="12" stroke-linecap="round"/></svg>`;
+const X_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M18 18 62 62M62 18 18 62" stroke="${C.coral}" stroke-width="12" stroke-linecap="round"/></svg>`;
 function ox() {
   const qs = shuffle(POOL).slice(0, 5);
   let i = 0, score = 0;
@@ -376,7 +280,7 @@ function ox() {
     const total = qs.length, best = store.ox ? Math.max(store.ox.best, score) : score;
     store.ox = { best, total }; save();
     report({
-      code: 'EXP-03', again: '#/ox',
+      code: 'EXP-03', icon: 'icon_ox', again: '#/ox',
       head: score === total ? `<span>만점!</span> 5문제를 다 맞혔어요` : `${total}문제 중 <span>${score}개</span> 정답`,
       rows: [['맞힌 문제', `${score} / ${total}`], ['내 최고 점수', `${best} / ${total}`]],
       note: '문제는 할 때마다 섞여서 나와요. 다시 하면 처음 보는 문제를 만날 수 있어요.',
