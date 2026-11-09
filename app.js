@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=9';
+const V = '?v=11';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -77,10 +77,38 @@ function keyring() {
   try { sessionStorage.setItem(KR_SHOWN, stage); } catch (e) {}
 }
 
+/* 키링 뒤에서 천천히 도는 DNA 나선 (글자 자리와 안 겹침) */
+function helix(hx) {
+  if (!hx) return () => {};
+  const cols = ['#34B36B', '#EF5350', '#F4A62A', '#3D8BF2'], pair = [1, 0, 3, 2];
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0 = performance.now(); let raf;
+  const draw = now => {
+    const t = (now - t0) / 1000, cx = 55, amp = 40, H = 232, N = 11;
+    const ph = y => y / H * Math.PI * 2.4 + t * 1.1;
+    let rungs = '', p1 = '', p2 = '';
+    for (let j = 0; j < N; j++) {
+      const y = 8 + j * (H - 8) / (N - 1), a = Math.sin(ph(y)), d = Math.cos(ph(y));
+      const x1 = cx + amp * a, x2 = cx - amp * a, op = (0.35 + 0.65 * Math.abs(d)).toFixed(2);
+      rungs += `<line x1="${x1.toFixed(1)}" y1="${y.toFixed(1)}" x2="${cx}" y2="${y.toFixed(1)}" stroke="${cols[j % 4]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`
+             + `<line x1="${cx}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${cols[pair[j % 4]]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`;
+    }
+    for (let i = 0; i <= 48; i++) {
+      const y = 4 + i * (H + 4) / 48, a = Math.sin(ph(y));
+      p1 += (i ? 'L' : 'M') + (cx + amp * a).toFixed(1) + ',' + y.toFixed(1);
+      p2 += (i ? 'L' : 'M') + (cx - amp * a).toFixed(1) + ',' + y.toFixed(1);
+    }
+    hx.innerHTML = rungs + `<path d="${p1}" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/><path d="${p2}" fill="none" stroke="#E9FFF7" stroke-width="7" stroke-linecap="round" opacity=".8"/>`;
+    if (!reduce) raf = requestAnimationFrame(draw);
+  };
+  raf = requestAnimationFrame(draw);
+  return () => cancelAnimationFrame(raf);
+}
+
 /* ================= 첫 화면 ================= */
 function home() {
   const n = nextIdx(), all = n < 0;
-  app.innerHTML = `<div class="home">
+  app.innerHTML = `<div class="home"><div class="home-inner">
   <div class="top"><span class="live">BIOHEALTH PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
   <header class="intro-h">
     <div class="intro-t">
@@ -89,6 +117,7 @@ function home() {
       <p>실험을 하나 끝낼 때마다 키링이 조금씩 완성돼요.</p>
     </div>
     <div class="kr" id="kr" role="img" aria-label="키링 진행 ${GAMES.filter(g => run[g.id]).length}/3">
+      <svg class="kr-helix" id="helix" viewBox="0 0 110 240" aria-hidden="true"></svg>
       <div class="kr-sway">
         <img class="kr-base" src="img/keyring.png${V}" alt="" width="200" height="300">
         <img class="kr-fill" id="krFill" src="img/keyring.png${V}" alt="" width="200" height="300">
@@ -111,8 +140,9 @@ function home() {
     ? `<button class="btn" data-go="#/done">최종 결과 보기</button><button class="reset" id="reset">처음부터 다시 하기</button>`
     : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>`}</div>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
-  </div>`;
+  </div></div>`;
   keyring();
+  onCleanup(helix(document.getElementById('helix')));
   const rs = document.getElementById('reset');
   if (rs) rs.onclick = () => { run = {}; saveRun(); try { sessionStorage.removeItem(KR_SHOWN); } catch (e) {} home(); };
 }
@@ -358,6 +388,27 @@ function ox() {
   show();
 }
 
+
+/* ================= 휴대폰 크기에 맞춰 통째로 확대·축소 ================= */
+const BASE_W = 390, MAX_Z = 1.7;
+function fit() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const home = app.querySelector('.home');
+  app.style.zoom = 1;
+  let z = w / BASE_W;
+  if (home) {
+    home.style.minHeight = '0px';
+    const inner = home.querySelector('.home-inner');
+    z = Math.min(z, h / inner.offsetHeight);
+  }
+  z = Math.min(z, MAX_Z);
+  app.style.zoom = z;
+  if (home) home.style.minHeight = (h / z) + 'px';
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', () => setTimeout(fit, 200));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
 /* ================= 화면 전환 ================= */
 function route() {
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
@@ -366,6 +417,7 @@ function route() {
   const fn = { spot, pattern, ox, done }[h] || home;
   document.documentElement.classList.toggle('on-home', fn === home);
   fn();
+  fit();
 }
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-go]');

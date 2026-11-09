@@ -232,7 +232,6 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 @media (prefers-reduced-motion:reduce){.kr-sway{animation:none}.kr-fill{transition:none}}
 .intro-h h1 em{font-style:normal;color:var(--teal)}
 
-@media (max-width:360px){.top span:last-child{display:none}}
 
 /* 끝낸 실험: 흐리게 + 번호 대신 체크 */
 .game.ok{background:#EEF3F1;box-shadow:0 2px 0 var(--line)}
@@ -251,44 +250,35 @@ body{background:linear-gradient(180deg,#BFE6D1 0,#E4F5EC 45%,#FFFFFF 100%) fixed
 .home .game{box-shadow:0 4px 0 rgba(0,0,0,.12),0 12px 28px rgba(0,40,36,.18)}
 .home .cta .btn{background:#FFC93B;color:#17323A;box-shadow:0 4px 0 #D9A41A}
 
-/* ================= 첫 화면: 모든 휴대폰 크기에 맞춰 유연하게 =================
-   (폴드 커버 280px ~ 일반 폰 ~ 플립 412×915 ~ 폴드 펼침 900px)
-   --vh: 화면 높이 1%  /  선반은 옆만 잘리고 위는 절대 안 잘림 */
-.home{--vh:1vh}
-@supports (height:1dvh){.home{--vh:1dvh}}
+/* 키링 뒤 DNA 나선: 오른쪽 키링 자리 안에서만 */
+.kr{position:relative}
+.kr-helix{position:absolute;left:50%;top:-8%;height:108%;aspect-ratio:110/240;width:auto;transform:translateX(-50%);z-index:0;opacity:.75;pointer-events:none}
+.kr-sway,.kr-lbl{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){.kr-helix{opacity:.5}}
+
+/* ================= 비율 그대로 확대·축소 =================
+   화면은 폭 390px 기준 한 벌로 디자인하고, app.js의 fit()이 휴대폰 크기에 맞춰 통째로 확대·축소(zoom)
+   첫 화면은 폭·높이 둘 다 맞춤(한 화면), 게임 화면은 폭에 맞춤 */
+#app{width:390px;max-width:none;margin:0 auto}
 html.on-home body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 18%,#5FB9A4 62%,#0F6F66 100%);background-attachment:fixed}
-.shelf{position:relative;width:100vw;margin-left:calc(50% - 50vw);height:min(26vw,calc(var(--vh)*13),130px);overflow:hidden;line-height:0}
-.shelf img{width:100%;height:100%;object-fit:cover;object-position:center bottom}
-.home .top{padding:clamp(12px,calc(var(--vh)*2.4),24px) var(--space-4) 0;font-size:clamp(10.5px,3.2vw,12px)}
-.home .intro-h{padding:clamp(6px,calc(var(--vh)*1.6),16px) var(--space-4) 0}
-.home .intro-h h1{font-size:clamp(22px,min(8.6vw,calc(var(--vh)*4.6)),38px);margin-top:clamp(4px,calc(var(--vh)*1.2),12px)}
-.home .status{font-size:clamp(11.5px,3.4vw,13px)}
-.home .intro-h p{font-size:clamp(13.5px,min(4.2vw,calc(var(--vh)*2.1)),16.5px);margin-top:clamp(4px,calc(var(--vh)*.8),8px)}
-.kr{width:auto}
-.kr-sway{height:clamp(80px,calc(var(--vh)*17),168px);width:auto;aspect-ratio:2/3}
-.home .pick{gap:clamp(6px,calc(var(--vh)*1.2),12px);padding:clamp(6px,calc(var(--vh)*1.6),18px) var(--space-4) clamp(4px,calc(var(--vh)*.8),8px)}
-.home .game{padding:clamp(7px,calc(var(--vh)*1.4),14px) var(--space-3)}
-.home .game .ic{width:clamp(52px,min(19vw,calc(var(--vh)*9.6)),84px);height:clamp(52px,min(19vw,calc(var(--vh)*9.6)),84px)}
-.home .game .ic img{width:90%;height:90%}
-.home .game .tt{font-size:clamp(16.5px,min(5.2vw,calc(var(--vh)*2.6)),20px)}
-.home .game .dd{font-size:clamp(14px,4.3vw,16px);line-height:1.4}
-.home .game .tm{font-size:clamp(13.5px,4vw,15px)}
-.home .cta .btn{padding:clamp(11px,calc(var(--vh)*2),16px) var(--space-4);font-size:clamp(16px,4.6vw,18px)}
-/* 높이가 모자라면 덜 중요한 것부터 숨김 */
-@media (max-height:700px){.home .intro-h p{display:none}}
-@media (max-height:600px){.home .game .dd{display:none}}
-@media (max-height:650px) and (max-width:370px){.home .game .dd{display:none}}
-@media (max-height:560px){.home .top{display:none}}
-/* 폭이 아주 좁은 화면(폴드 커버 등) */
-@media (max-width:330px){.home .top span:last-child{display:none}.home .game{gap:var(--space-2)}.kr-lbl{font-size:11.5px;padding:1px 8px}}
-/* 넓은 화면(폴드 펼침·태블릿): 가운데 정렬은 그대로, 배경·선반은 꽉 차게 */
-@media (min-width:600px){.home .intro-h h1{font-size:clamp(28px,calc(var(--vh)*4.6),40px)}}
-/* 게임 화면 윗줄: 좁은 화면에선 '실험 n/3' 숨기고 제목을 살림 */
-@media (max-width:380px){.bar-t em{display:none}.bk{padding:0 8px;font-size:14px}.bar-t{font-size:15.5px}.bar-c{font-size:13.5px;padding:3px 9px}}
-/* 아이폰 노치·상태표시줄·카톡 인앱 브라우저에서 선반 윗부분이 가려지지 않게 */
-.shelf{box-sizing:content-box;padding-top:env(safe-area-inset-top,0px)}
-/* 빈 띠 없애기: 남는 높이는 카드가 나눠 가짐 (가운데 몰아두지 않음) */
-.home .pick{justify-content:flex-start}
-.home .steps li{flex:1 1 auto;display:flex;min-height:0;max-height:190px}
-.home .steps li .game{flex:1;height:auto}
-.home .cta{padding-top:clamp(8px,calc(var(--vh)*1.4),14px)}
+.home{min-height:0;display:flex;flex-direction:column;justify-content:center}
+.home-inner{padding:18px 0 14px}
+.home .top{padding:0 20px;font-size:12px}
+.home .intro-h{padding:14px 20px 0}
+.home .status{font-size:13px}
+.home .intro-h h1{font-size:34px;margin-top:12px}
+.home .intro-h p{font-size:16px;margin-top:8px}
+.kr{width:104px}
+.kr-sway{width:92px;height:138px}
+.home .pick{gap:12px;padding:18px 20px 0}
+.home .steps li{display:flex}
+.home .steps li .game{flex:1}
+.home .game{padding:14px 14px}
+.home .game .ic{width:80px;height:80px}
+.home .game .ic img{width:72px;height:72px}
+.home .game .tt{font-size:20px}
+.home .game .dd{font-size:15.5px;line-height:1.4}
+.home .game .tm{font-size:14.5px}
+.home .cta{padding:16px 20px 0}
+.home .cta .btn{padding:16px;font-size:18px}
+.home .foot{padding:12px 20px 0;font-size:12px}
