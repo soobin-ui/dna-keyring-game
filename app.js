@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=27';
+const V = '?v=28';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '같은 그림 카드 2장씩 찾아 짝 맞추기', time: '약 2분' },
@@ -614,21 +614,14 @@ function memo() {
 const CARD_ITEMS = [
   { k: 'dna', n: 'DNA', f: '우리 몸을 만드는 설명서예요.' },
   { k: 'scope', n: '현미경', f: '눈에 안 보이는 세포를 크게 보여줘요.' },
-  { k: 'cell', n: '세포', f: '우리 몸을 이루는 작은 방. 그 안에 DNA가 있어요.' },
+  { k: 'petri', n: '페트리 접시', f: '세포나 세균을 키울 때 쓰는 납작한 유리 접시예요.' },
   { k: 'tube', n: '시험관', f: '실험할 때 액체를 담는 가는 유리관이에요.' },
   { k: 'beaker', n: '비커', f: '액체를 담고 섞을 때 쓰는 컵이에요.' },
   { k: 'key', n: 'DNA 키링', f: '지금 온수조에서 만들어지고 있는 바로 그 키링!' },
 ];
 function cardIcon(k) {
-  if (k === 'key') return `<img src="img/keyring.png${V}" alt="" style="width:58%;height:auto">`;
-  const s = {
-    dna: `<path d="M22 6c0 14 20 14 20 26s-20 14-20 26M42 6c0 14-20 14-20 26s20 14 20 26" fill="none" stroke="#17323A" stroke-width="4" stroke-linecap="round"/><path d="M25 14h14M28 22h8M28 42h8M25 50h14" stroke-width="4" stroke-linecap="round" stroke="#EF5350"/><path d="M28 22h8M28 42h8" stroke="#3D8BF2" stroke-width="4" stroke-linecap="round"/>`,
-    scope: `<rect x="14" y="52" width="36" height="6" rx="3" fill="#17323A"/><path d="M40 52V36q0-10-8-14" fill="none" stroke="#17323A" stroke-width="6" stroke-linecap="round"/><rect x="16" y="38" width="26" height="5" rx="2" fill="#0E9F8E"/><g transform="rotate(-25 28 20)"><rect x="23" y="8" width="10" height="22" rx="3" fill="#3D8BF2"/><rect x="22" y="4" width="12" height="6" rx="2" fill="#17323A"/></g>`,
-    cell: `<circle cx="32" cy="32" r="24" fill="#FFD6E0" stroke="#EF5350" stroke-width="3"/><circle cx="34" cy="30" r="9" fill="#B9A2FF" stroke="#6B3FD4" stroke-width="2.5"/><ellipse cx="18" cy="38" rx="4" ry="2.5" fill="#34B36B"/><ellipse cx="44" cy="44" rx="4" ry="2.5" fill="#34B36B"/>`,
-    tube: `<g transform="rotate(20 32 32)"><rect x="25" y="6" width="14" height="50" rx="7" fill="#fff" stroke="#17323A" stroke-width="3"/><path d="M27 32h10v17a5 5 0 0 1-10 0z" fill="#34B36B"/><rect x="23" y="4" width="18" height="8" rx="2" fill="#EF5350"/></g>`,
-    beaker: `<path d="M16 10h32M20 10v38a6 6 0 0 0 6 6h12a6 6 0 0 0 6-6V10" fill="#fff" stroke="#17323A" stroke-width="3" stroke-linejoin="round"/><path d="M22 32h20v16a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z" fill="#3D8BF2"/><path d="M24 20h6M24 26h4" stroke="#17323A" stroke-width="2.5" stroke-linecap="round"/>`,
-  }[k];
-  return `<svg viewBox="0 0 64 64" style="width:62%;height:auto">${s}</svg>`;
+  const src = k === 'key' ? 'keyring' : 'card_' + k;
+  return `<img src="img/${src}.png${V}" alt="" style="height:${k === 'key' ? 64 : 66}%;width:auto;max-width:86%;object-fit:contain" draggable="false">`;
 }
 const CARD_TIME = 90;
 function cards() {
@@ -651,7 +644,7 @@ function cards() {
     <h2>실험실 <em>카드</em> 뒤집기</h2>
     <ol class="sp-how">
       <li><span class="dc-mini"><span class="cd-mini back sm"></span><span class="cd-mini back sm"></span></span><span>카드 2장<br>뒤집기</span></li>
-      <li><span class="dc-mini"><span class="cd-mini sm">${cardIcon('cell')}</span><span class="cd-mini sm">${cardIcon('cell')}</span></span><span>같은 그림<br>찾기</span></li>
+      <li><span class="dc-mini"><span class="cd-mini sm">${cardIcon('petri')}</span><span class="cd-mini sm">${cardIcon('petri')}</span></span><span>같은 그림<br>찾기</span></li>
       <li><span class="dc-mini"><svg viewBox="0 0 56 40" width="48" height="34"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg></span><span><b style="color:#EF5350">1분 30초</b><br>안에</span></li>
     </ol>
     <button class="btn sp-go" id="cdGo">시작하기</button></div></div>`;
