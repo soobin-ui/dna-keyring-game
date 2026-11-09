@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=15';
+const V = '?v=16';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -177,7 +177,7 @@ const DIFFS = [
 const shotSVG = B => `<svg class="shot" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
   <image href="img/spot_${B ? 'b' : 'a'}.jpg${V}" width="400" height="300"/><g class="marks"></g></svg>`;
 function spot() { playSpot(); }
-const SPOT_TIME = 180; // 제한 시간 3분
+const SPOT_TIME = 120; // 제한 시간 2분
 function playSpot() {
   const found = new Set();
   let hints = 0, done = false;
@@ -200,7 +200,7 @@ function playSpot() {
       <ol class="sp-how">
         <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/><text x="9" y="13" font-size="0">A</text></svg><span>두 그림<br>비교</span></li>
         <li><svg viewBox="0 0 56 40"><circle cx="28" cy="20" r="12" fill="none" stroke="#EF5350" stroke-width="3.2"/><path d="M28 2v7M28 31v7M10 20h7M39 20h7" stroke="#EF5350" stroke-width="3.2" stroke-linecap="round"/></svg><span>다른 곳<br>터치</span></li>
-        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>3분</b><br>안에</span></li>
+        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>2분</b><br>안에</span></li>
       </ol>
       <button class="btn sp-go" id="spGo">시작하기</button>
     </div>
@@ -265,7 +265,7 @@ function playSpot() {
     setTimeout(() => report({
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
       head: all ? `다른 곳 7개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
-      rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', '3:00'], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
+      rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(SPOT_TIME)], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
       note: (all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요. ') + '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
     }), all ? 700 : 1600);
   }
