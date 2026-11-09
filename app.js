@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=21';
+const V = '?v=22';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -62,14 +62,19 @@ function keyring() {
   let shown = 0;
   try { shown = +sessionStorage.getItem(KR_SHOWN) || 0; } catch (e) {}
   if (shown > stage) shown = stage;
-  const clip = k => `inset(${(100 - k * 100 / 3).toFixed(2)}% 0 0 0)`;
+  // 키링 몸통(그림 세로 35.7%~97.2%)을 3등분해서 아래부터 채움, 3단계면 고리까지 전부
+  const clip = k => k >= 3 ? 'inset(0 0 0 0)' : `inset(${(97.2 - k * 61.5 / 3).toFixed(2)}% 0 0 0)`;
+  const liq = document.getElementById('krLiq');
+  const level = k => { liq.style.height = (k * 59 / 3).toFixed(2) + '%'; liq.classList.toggle('on', k > 0); };
   const label = k => k >= 3 ? '키링 완성!' : `${k} / 3`;
   fill.style.clipPath = fill.style.webkitClipPath = clip(shown);
+  level(shown);
   lbl.textContent = label(shown);
   box.classList.toggle('full', shown >= 3);
   if (stage > shown) {
     setTimeout(() => {
       fill.style.clipPath = fill.style.webkitClipPath = clip(stage);
+      level(stage);
       box.classList.add('bump');
       setTimeout(() => { lbl.textContent = label(stage); box.classList.toggle('full', stage >= 3); }, 700);
     }, 450);
@@ -92,6 +97,7 @@ function home() {
       <div class="kr-sway">
         <img class="kr-base" src="img/keyring.png${V}" alt="" width="200" height="300">
         <img class="kr-fill" id="krFill" src="img/keyring.png${V}" alt="" width="200" height="300">
+        <span class="kr-liquid" id="krLiq"></span>
       </div>
       <span class="kr-lbl" id="krLbl"></span>
     </div>

@@ -340,3 +340,10 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 @media (prefers-reduced-motion:reduce){.sp-status.low .sp-time b,.sp-status.last .sp-time b{animation:none}}
 .slip-sub{text-align:center;font-size:15px;color:var(--ink-2);margin:-4px 0 12px}
 .slip-note p+p{margin-top:6px}
+/* 키링이 채워진 부분: 청록 물이 차오르고 윗면에 밝은 수면 선 → "채워졌다"가 바로 보이게 */
+.kr-liquid{position:absolute;left:26.5%;right:30.5%;bottom:4%;height:0;border-radius:4px 4px 14px 14px;
+  background:rgba(32,201,168,.55);mix-blend-mode:multiply;transition:height 1.3s var(--ease-out);pointer-events:none}
+.kr-liquid.on{box-shadow:inset 0 3px 0 rgba(255,255,255,.95)}
+.kr.bump .kr-liquid{animation:liqPop .6s var(--ease-out) 1.2s 1}
+@keyframes liqPop{50%{background:rgba(32,201,168,.85)}}
+.kr.full .kr-liquid{background:rgba(255,201,59,.45)}
