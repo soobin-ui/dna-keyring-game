@@ -292,3 +292,42 @@ html.on-home body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 18%,#5FB9A
 .si-rules u{text-decoration:none;font-weight:700;color:var(--teal-d)}
 .si-tip{color:var(--ink-2);font-size:15.5px;margin-bottom:22px}
 .si-start{background:#FFC93B;color:#17323A;box-shadow:0 4px 0 #D9A41A;font-size:18px}
+/* 틀린그림: 찾은 개수 + 남은 시간 상태판 (스크롤해도 위에 붙어 있음) */
+.bar-c:empty{display:none}
+.sp-status{position:sticky;top:64px;z-index:15;display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 12px;background:var(--white);border-radius:16px;
+  padding:10px 16px 12px;margin-bottom:12px;box-shadow:0 2px 0 var(--line),0 8px 20px rgba(23,50,58,.10)}
+.sp-found span,.sp-time span{display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:2px}
+.sp-found b{display:inline-block;font-family:var(--font-mono);font-size:38px;line-height:1;color:var(--coral)}
+.sp-found b.bump{animation:spBump .35s var(--ease-out)}
+@keyframes spBump{50%{transform:scale(1.35)}}
+.sp-found i{font-style:normal;font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--ink-3);margin-left:4px}
+.sp-time{text-align:right}
+.sp-time b{font-family:var(--font-mono);font-size:32px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.sp-bar{grid-column:1/-1;height:9px;border-radius:99px;background:var(--mint-2);overflow:hidden;margin-top:10px}
+.sp-bar i{display:block;height:100%;width:100%;background:var(--teal);border-radius:99px;transition:width .25s linear}
+.sp-status.low .sp-time b{color:var(--coral)}
+.sp-status.low .sp-bar i{background:var(--coral)}
+svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-dasharray:7 6}
+/* 틀린그림: 한 화면에 (상태판 한 줄 + 그림 2장) */
+.g.sp{padding:10px 16px 12px}
+.sp .sp-status{position:static;grid-template-columns:1fr auto auto;gap:0 14px;padding:8px 14px 10px;margin-bottom:10px}
+.sp .sp-found b{font-size:34px}
+.sp .sp-time b{font-size:28px}
+.sp-hint{align-self:center;display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 12px;border-radius:99px;background:var(--teal-wash);color:var(--teal-d);font-size:15px;font-weight:700}
+.sp-hint svg{width:20px;height:20px}
+.sp .sp-bar{margin-top:8px}
+.sp .pic{margin-bottom:10px}
+.sp .pic:last-child{margin-bottom:0}
+/* 시작 전 설명 상자: 게임 화면 위에, 뒤는 흐리게 */
+.sp-ov{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:rgba(228,244,238,.35);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.sp-card{width:100%;max-width:340px;background:var(--white);border-radius:24px;padding:20px 20px 18px;text-align:center;box-shadow:0 18px 40px rgba(23,50,58,.22)}
+.sp-card img{width:72px;height:72px;margin:-2px auto 4px}
+.sp-card h2{font-family:var(--font-head);font-size:25px;font-weight:800;line-height:1.25}
+.sp-card h2 em{font-style:normal;background:linear-gradient(transparent 55%,#FFC93B 55%,#FFC93B 92%,transparent 92%);padding:0 2px}
+.sp-how{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0 18px}
+.sp-how li{background:var(--mint);border-radius:14px;padding:10px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.sp-how svg{width:56px;height:40px}
+.sp-how span{font-size:14px;font-weight:700;line-height:1.3;color:var(--ink)}
+.sp-how b{color:var(--coral)}
+.sp-go{background:#FFC93B;color:#17323A;box-shadow:0 4px 0 #D9A41A;font-size:18px}

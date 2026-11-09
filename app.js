@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=13';
+const V = '?v=15';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -129,7 +129,7 @@ function home() {
     ${GAMES.map((g, k) => {
       const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
       const v = run[g.id];
-      const note = st === 'ok' ? `✓ 완료 · ${g.id === 'spot' ? `걸린 시간 ${v}` : `${v} 정답`}` : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
+      const note = st === 'ok' ? `✓ 완료 · ${g.id === 'spot' ? `${v} 찾음` : `${v} 정답`}` : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
       return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
         <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${st === 'ok' ? '✓' : k + 1}</b></span>
         <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
@@ -176,44 +176,60 @@ const DIFFS = [
 ];
 const shotSVG = B => `<svg class="shot" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
   <image href="img/spot_${B ? 'b' : 'a'}.jpg${V}" width="400" height="300"/><g class="marks"></g></svg>`;
-function spot() {
-  app.innerHTML = bar('틀린그림찾기', '0/7') + `
-  <main class="g spot-intro">
-    <span class="tag">HOW TO PLAY</span>
-    <h2 class="si-title">두 그림에서<br><em>다른 곳 7개</em>를 찾아보세요</h2>
-    <ol class="si-rules">
-      <li><b>1</b><span>위 그림 A와 아래 그림 B를 비교해요.</span></li>
-      <li><b>2</b><span>다른 곳을 찾으면 그 자리를 손가락으로 눌러요.</span></li>
-      <li><b>3</b><span>잘 모르겠으면 <u>힌트</u> 버튼을 눌러요.</span></li>
-    </ol>
-    <p class="si-tip">작은 것까지 꼼꼼히 보세요! 시작을 누르면 시간이 재기 시작해요.</p>
-    <button class="btn si-start" id="spotStart">시작하기</button>
-  </main>`;
-  document.getElementById('spotStart').onclick = playSpot;
-}
+function spot() { playSpot(); }
+const SPOT_TIME = 180; // 제한 시간 3분
 function playSpot() {
   const found = new Set();
   let hints = 0, done = false;
-  const t0 = performance.now();
-  app.innerHTML = bar('틀린그림찾기', '0/7') + `
-  <main class="g">
-    <p class="ins"><span>두 그림에서 <b>다른 곳</b>을 눌러요</span><span class="clock" id="tm">0:00</span></p>
+  let t0 = 0;
+  app.innerHTML = bar('틀린그림찾기') + `
+  <main class="g sp" data-fit>
+    <div class="sp-status" id="spStatus">
+      <div class="sp-found"><span>찾은 곳</span><b id="spN">0</b><i>/ 7</i></div>
+      <div class="sp-time"><span>남은 시간</span><b id="tm">${fmt(SPOT_TIME)}</b></div>
+      <button class="sp-hint" id="hint" aria-label="힌트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>힌트</button>
+      <div class="sp-bar"><i id="spBar"></i></div>
+    </div>
     <figure class="pic"><figcaption>그림 A</figcaption>${shotSVG(false)}</figure>
     <figure class="pic"><figcaption>그림 B</figcaption>${shotSVG(true)}</figure>
-    <div class="ticks" id="ticks">${DIFFS.map(() => '<i></i>').join('')}<span id="tk">0 / 7</span></div>
-    <button class="btn line" id="hint">잘 모르겠어요 · 힌트</button>
-  </main>`;
+  </main>
+  <div class="sp-ov" id="spOv">
+    <div class="sp-card" role="dialog" aria-modal="true" aria-label="틀린그림찾기 방법">
+      <img src="img/icon_spot.png${V}" alt="" width="72" height="72">
+      <h2>다른 곳 <em>7개</em> 찾기</h2>
+      <ol class="sp-how">
+        <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/><text x="9" y="13" font-size="0">A</text></svg><span>두 그림<br>비교</span></li>
+        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="20" r="12" fill="none" stroke="#EF5350" stroke-width="3.2"/><path d="M28 2v7M28 31v7M10 20h7M39 20h7" stroke="#EF5350" stroke-width="3.2" stroke-linecap="round"/></svg><span>다른 곳<br>터치</span></li>
+        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>3분</b><br>안에</span></li>
+      </ol>
+      <button class="btn sp-go" id="spGo">시작하기</button>
+    </div>
+  </div>`;
   const svgs = [...app.querySelectorAll('svg.shot')];
-  const tm = document.getElementById('tm');
-  const iv = setInterval(() => { if (!done) tm.textContent = fmt((performance.now() - t0) / 1000); }, 250);
+  const tm = document.getElementById('tm'), barEl = document.getElementById('spBar'), st = document.getElementById('spStatus');
+  const left = () => t0 ? Math.max(0, SPOT_TIME - (performance.now() - t0) / 1000) : SPOT_TIME;
+  const tick = () => {
+    if (done) return;
+    const L = left();
+    tm.textContent = fmt(Math.ceil(L));
+    barEl.style.width = (L / SPOT_TIME * 100).toFixed(2) + '%';
+    st.classList.toggle('low', L <= 30);
+    if (L <= 0) finish(false);
+  };
+  let iv = 0;
   onCleanup(() => clearInterval(iv));
+  document.getElementById('spGo').onclick = () => {
+    document.getElementById('spOv').remove();
+    t0 = performance.now();
+    iv = setInterval(tick, 200);
+  };
   const add = (svg, html, ms) => {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.innerHTML = html; svg.querySelector('.marks').appendChild(g);
     if (ms) setTimeout(() => g.remove(), ms);
   };
   svgs.forEach(svg => svg.addEventListener('click', e => {
-    if (done) return;
+    if (done || !t0) return;
     const r = svg.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 300;
     let hit = -1, best = 1e9;
@@ -226,31 +242,32 @@ function playSpot() {
       s.querySelectorAll(`.hint-${hit}`).forEach(n => n.parentNode.remove());
       add(s, `<g class="found"><circle cx="${d.x}" cy="${d.y}" r="${d.r}"/><path d="M${d.x} ${d.y - k}v8M${d.x} ${d.y + k}v-8M${d.x - k} ${d.y}h8M${d.x + k} ${d.y}h-8"/></g>`);
     });
-    document.getElementById('bc').textContent = `${found.size}/7`;
-    document.getElementById('tk').textContent = `${found.size} / 7`;
-    document.querySelectorAll('#ticks i').forEach((el, i) => el.classList.toggle('on', i < found.size));
-    if (found.size === DIFFS.length) finish();
+    const n = document.getElementById('spN');
+    n.textContent = found.size; n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump');
+    if (found.size === DIFFS.length) finish(true);
   }));
   document.getElementById('hint').addEventListener('click', () => {
     const i = DIFFS.findIndex((d, k) => !found.has(k));
-    if (i < 0 || done) return;
+    if (i < 0 || done || !t0) return;
     hints++;
     const d = DIFFS[i];
     svgs.forEach(s => add(s, `<circle class="hintc hint-${i}" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`, 2600));
-    svgs[0].closest('.pic').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  function finish() {
+  function finish(all) {
+    if (done) return;
     done = true;
-    const sec = (performance.now() - t0) / 1000;
-    tm.textContent = fmt(sec);
-    const best = store.spot ? Math.min(store.spot.best, sec) : sec;
-    store.spot = { best }; save(); markDone('spot', fmt(sec));
+    const L = left(), n = found.size;
+    tm.textContent = fmt(Math.ceil(L));
+    // 못 찾은 곳은 노란 점선으로 알려 줌
+    DIFFS.forEach((d, i) => { if (!found.has(i)) svgs.forEach(s => add(s, `<circle class="missed" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`)); });
+    const best = store.spot && typeof store.spot.best === 'number' && store.spot.best <= 7 ? Math.max(store.spot.best, n) : n;
+    store.spot = { best }; save(); markDone('spot', `${n}/7`);
     setTimeout(() => report({
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
-      head: `다른 곳 7개를 <span>모두</span> 찾았어요!`,
-      rows: [['찾은 곳', '7 / 7'], ['걸린 시간', fmt(sec)], ['힌트', `${hints}회`], ['내 최고 기록', fmt(best)]],
-      note: '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
-    }), 700);
+      head: all ? `다른 곳 7개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
+      rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', '3:00'], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
+      note: (all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요. ') + '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
+    }), all ? 700 : 1600);
   }
 }
 
@@ -415,6 +432,8 @@ function fit() {
     home.style.minHeight = '0px';
     const inner = home.querySelector('.home-inner');
     z = Math.min(z, h / inner.offsetHeight);
+  } else if (app.querySelector('[data-fit]')) {
+    z = Math.min(z, h / app.offsetHeight);
   }
   z = Math.min(z, MAX_Z);
   app.style.zoom = z;
