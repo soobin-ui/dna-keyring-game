@@ -16,59 +16,33 @@ const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
 const V = '?v=3';
-/* ================= 움직이는 실험실 배경 ================= */
-// 선으로 그린 실험 도구들이 천천히 떠다님 (점 입자·빛살·번짐 없음)
-const LAB_ICONS = {
-  beaker: '<path d="M14 8h28M18 8v34a6 6 0 0 0 6 6h12a6 6 0 0 0 6-6V8"/><path d="M18 30h24"/><path d="M22 18h6M22 24h4"/>',
-  flask: '<path d="M24 6h12M26 6v14L12 46a3 3 0 0 0 3 4h30a3 3 0 0 0 3-4L34 20V6"/><path d="M17 38h26"/>',
-  tube: '<path d="M22 4h16M24 4v40a6 6 0 0 0 12 0V4"/><path d="M24 26h12"/>',
-  dish: '<ellipse cx="30" cy="30" rx="24" ry="10"/><path d="M6 30v6c0 5.5 10.7 10 24 10s24-4.5 24-10v-6"/><path d="M20 28c3-2 6 2 9 0M33 32c3-2 6 2 9 0"/>',
-  scope: '<path d="M22 6l10 4-8 20-10-4z"/><path d="M27 30a14 14 0 0 1 14 14"/><path d="M12 52h34M20 52v-6h18v6M40 44V24"/><path d="M14 40h20"/>',
-  dna: '<path d="M18 4c0 14 24 14 24 28s-24 14-24 28"/><path d="M42 4c0 14-24 14-24 28s24 14 24 28"/><path d="M21 12h18M24 22h12M24 42h12M21 52h18"/>',
-  ring: '<path d="M30 8l19 11v22L30 52 11 41V19z"/><path d="M30 16l12 7v14l-12 7-12-7V23z"/>',
-  pipette: '<path d="M38 6l16 16M44 12l-28 28-8 12 12-8 28-28"/><path d="M40 18l-4-4"/>',
-};
-const LAB_COLORS = ['#0E9F8E', '#EF5350', '#F4A62A', '#3D8BF2'];
-const LAB_LAYOUT = [
-  ['dna', 4, 6, 64], ['flask', 82, 4, 52], ['tube', 64, 22, 40], ['ring', 8, 32, 48], ['beaker', 86, 38, 50],
-  ['dish', 40, 48, 58], ['scope', 4, 62, 56], ['pipette', 78, 66, 50], ['dna', 52, 80, 54], ['tube', 22, 86, 40],
-  ['ring', 88, 88, 42], ['flask', 30, 14, 40],
-];
-(function labBackground() {
-  const el = document.createElement('div');
-  el.className = 'lab-bg';
-  el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = LAB_LAYOUT.map(([k, x, y, size], i) => {
-    const dur = 11 + (i * 7) % 9, delay = -((i * 3.7) % dur), dir = i % 2 ? 'alternate-reverse' : 'alternate';
-    return `<svg class="lab-ic" viewBox="0 0 60 60" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;color:${LAB_COLORS[i % 4]};animation-duration:${dur}s;animation-delay:${delay.toFixed(1)}s;animation-direction:${dir}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${LAB_ICONS[k]}</svg>`;
-  }).join('');
-  el.insertAdjacentHTML('afterbegin', '<svg class="lab-helix" viewBox="0 0 140 420" id="helix"></svg>');
-  document.body.insertBefore(el, document.body.firstChild);
-  const hx = el.querySelector('#helix');
+/* ================= 첫 화면 DNA 나선 (글자 뒤가 아닌 오른쪽 자리에서만 움직임) ================= */
+function helix(hx) {
   const cols = ['#34B36B', '#EF5350', '#F4A62A', '#3D8BF2'], pair = [1, 0, 3, 2];
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const t0 = performance.now();
+  let raf;
   const draw = now => {
-    const t = (now - t0) / 1000, cx = 70, amp = 46, H = 400, N = 16;
-    const ph = y => y / H * Math.PI * 3 + t * 0.6;
+    const t = (now - t0) / 1000, cx = 50, amp = 34, H = 220, N = 10;
+    const ph = y => y / H * Math.PI * 2.2 + t * 0.7;
     let rungs = '', p1 = '', p2 = '';
     for (let j = 0; j < N; j++) {
-      const y = 14 + j * (H - 8) / (N - 1), a = Math.sin(ph(y)), d = Math.cos(ph(y));
-      const x1 = cx + amp * a, x2 = cx - amp * a, op = (0.45 + 0.55 * Math.abs(d)).toFixed(2);
-      rungs += `<line x1="${x1.toFixed(1)}" y1="${y.toFixed(1)}" x2="${cx}" y2="${y.toFixed(1)}" stroke="${cols[j % 4]}" stroke-width="7" stroke-linecap="round" opacity="${op}"/>`
-             + `<line x1="${cx}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${cols[pair[j % 4]]}" stroke-width="7" stroke-linecap="round" opacity="${op}"/>`;
+      const y = 10 + j * (H - 4) / (N - 1), a = Math.sin(ph(y)), d = Math.cos(ph(y));
+      const x1 = cx + amp * a, x2 = cx - amp * a, op = (0.5 + 0.5 * Math.abs(d)).toFixed(2);
+      rungs += `<line x1="${x1.toFixed(1)}" y1="${y.toFixed(1)}" x2="${cx}" y2="${y.toFixed(1)}" stroke="${cols[j % 4]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`
+             + `<line x1="${cx}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${cols[pair[j % 4]]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`;
     }
-    for (let i = 0; i <= 60; i++) {
-      const y = 6 + i * (H + 8) / 60, a = Math.sin(ph(y));
+    for (let i = 0; i <= 50; i++) {
+      const y = 4 + i * (H + 4) / 50, a = Math.sin(ph(y));
       p1 += (i ? 'L' : 'M') + (cx + amp * a).toFixed(1) + ',' + y.toFixed(1);
       p2 += (i ? 'L' : 'M') + (cx - amp * a).toFixed(1) + ',' + y.toFixed(1);
     }
-    hx.innerHTML = rungs + `<path d="${p1}" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/><path d="${p2}" fill="none" stroke="#B9E6DC" stroke-width="8" stroke-linecap="round"/>`;
-    if (!reduce && !document.hidden) requestAnimationFrame(draw);
+    hx.innerHTML = rungs + `<path d="${p1}" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/><path d="${p2}" fill="none" stroke="#9FD9CB" stroke-width="7" stroke-linecap="round"/>`;
+    if (!reduce) raf = requestAnimationFrame(draw);
   };
-  requestAnimationFrame(draw);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !reduce) requestAnimationFrame(draw); });
-})();
+  raf = requestAnimationFrame(draw);
+  return () => cancelAnimationFrame(raf);
+}
 
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
@@ -113,14 +87,18 @@ function home() {
   app.innerHTML = `<div class="home">
   <div class="top"><span class="live"><i></i>BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
   <header class="intro-h">
-    <span class="status"><i></i>온수조 처리 중 · DNA 키링</span>
-    <h1>키링 완성까지<br><span>약 20분</span></h1>
-    <p>기다리는 동안 실험 3개를 순서대로 해 보세요.</p>
+    <div class="intro-t">
+      <span class="status"><i></i>온수조 처리 중</span>
+      <h1>키링 완성까지<br><span>약 20분</span></h1>
+      <p>기다리는 동안 실험 3개를 순서대로 해 보세요.</p>
+    </div>
+    <svg class="hd-helix" id="helix" viewBox="0 0 100 228" aria-hidden="true"></svg>
   </header>
   <ol class="pick steps">
     ${GAMES.map((g, k) => {
       const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
-      const note = st === 'ok' ? `✓ 완료 · ${run[g.id]}` : st === 'now' ? '지금 할 차례' : '앞 실험을 마치면 열려요';
+      const v = run[g.id];
+      const note = st === 'ok' ? `✓ 완료 · ${g.id === 'spot' ? `걸린 시간 ${v}` : `${v} 정답`}` : st === 'now' ? `${g.time} 걸려요` : `${k}번을 마치면 할 수 있어요`;
       return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
         <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${k + 1}</b></span>
         <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
@@ -132,6 +110,7 @@ function home() {
     : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>`}</div>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
   </div>`;
+  onCleanup(helix(document.getElementById('helix')));
   const rs = document.getElementById('reset');
   if (rs) rs.onclick = () => { run = {}; saveRun(); home(); };
 }

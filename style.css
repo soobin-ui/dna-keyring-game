@@ -35,7 +35,7 @@ img{display:block;max-width:100%}
 /* ---------- 첫 화면 ---------- */
 .top{display:flex;justify-content:space-between;align-items:center;padding:var(--space-4) var(--space-4) 0;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--teal-d);letter-spacing:.03em}
 .top .live{display:inline-flex;align-items:center;gap:6px}
-.top .live i{width:8px;height:8px;border-radius:50%;background:var(--coral);animation:led 1.6s steps(2) infinite}
+.top .live i{width:8px;height:8px;border-radius:50%;background:var(--coral)}
 @keyframes led{50%{opacity:.25}}
 .intro-h{padding:var(--space-4) var(--space-4) 0}
 .intro-h h1{font-family:var(--font-head);font-size:clamp(28px,8.8vw,36px);font-weight:700;line-height:1.24;letter-spacing:-.02em}
@@ -65,7 +65,7 @@ img{display:block;max-width:100%}
 .home .pick{flex:1;display:flex;flex-direction:column;justify-content:center;gap:var(--space-3);padding:var(--space-5) var(--space-4) var(--space-2)}
 .home .game{margin:0;flex:0 1 auto;box-shadow:0 3px 0 var(--line),0 10px 24px rgba(23,50,58,.06)}
 .status{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--lcd);background:var(--screen);padding:5px 12px;border-radius:99px}
-.status i{width:8px;height:8px;border-radius:50%;background:var(--lcd);animation:led 1.2s steps(2) infinite}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--lcd)}
 .home .intro-h h1{margin-top:var(--space-3)}
 .home .intro-h p{max-width:220px}
 .home .foot{padding-bottom:var(--space-5)}
@@ -77,8 +77,6 @@ img{display:block;max-width:100%}
 .game .ic{position:relative}
 .game .no{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--white);font-family:var(--font-mono);font-size:14px;display:grid;place-items:center;border:3px solid var(--white)}
 .game.now{box-shadow:inset 0 0 0 3px var(--teal),0 10px 24px rgba(14,159,142,.18)}
-.game.now .tm{display:inline-flex;align-items:center;gap:7px;color:var(--teal-d);font-family:var(--font-body);font-size:14px;font-weight:700;line-height:1}
-.game.now .tm::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--teal);animation:led 1.2s steps(2) infinite}
 .game.ok .tm{color:var(--teal-d)}
 .game.ok .no{background:var(--teal)}
 .game.lock{cursor:default;background:#F3F8F6}
@@ -203,15 +201,22 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 .slip-note p{font-size:15.5px;margin-top:2px}
 .slip-btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-2)}
 
-/* ---------- 움직이는 실험실 배경 ---------- */
-.lab-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;max-width:480px;margin:0 auto}
-.lab-ic{position:absolute;opacity:.32;animation:labFloat 12s var(--ease-in-out) infinite alternate;will-change:transform}
-@keyframes labFloat{
-  0%{transform:translate(0,0) rotate(-8deg)}
-  50%{transform:translate(10px,-18px) rotate(4deg)}
-  100%{transform:translate(-8px,-34px) rotate(10deg)}
-}
-.lab-helix{position:absolute;right:-34px;top:4%;width:150px;height:450px;opacity:.55}
-@media (prefers-reduced-motion:reduce){.lab-ic{animation:none}}
+
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .intro-h h1,.game .tt,.slip-h,.intro .big{font-weight:800}
+
+/* ---------- 머리말: 글자 왼쪽, DNA 나선 오른쪽 자리 ---------- */
+.intro-h{display:flex;align-items:center;gap:var(--space-2)}
+.intro-t{flex:1;min-width:0}
+.hd-helix{flex:none;width:96px;height:220px;margin-right:-6px}
+.home .intro-h p{max-width:none}
+.status{font-family:var(--font-body);letter-spacing:0}
+.game .start{flex:none;align-self:center;font-size:15px;font-weight:700;color:var(--white);background:var(--teal);padding:8px 14px;border-radius:99px}
+.game.now .tm{color:var(--teal-d);font-family:var(--font-body);font-size:13.5px}
+.game.ok .tm,.game.lock .tm{font-family:var(--font-body);font-size:13.5px}
+/* 상황별 정렬: 축하·결과 머리와 퀴즈 문제는 가운데, 설명·목록은 왼쪽 */
+.slip-art{margin:-4px auto 0;width:84px;height:84px}
+.slip-h{text-align:center}
+.done .tag,.done-h{display:block;text-align:center}
+.ox-q{align-items:center;text-align:center}
+@media (max-width:340px){.hd-helix{width:72px;height:170px}}
