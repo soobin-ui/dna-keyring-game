@@ -236,6 +236,14 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 
 @media (max-width:360px){.top span:last-child{display:none}}
 
+/* 끝낸 실험: 흐리게 + 번호 대신 체크 */
+.game.ok{background:#EEF3F1;box-shadow:0 2px 0 var(--line)}
+.game.ok .tt,.game.ok .dd{opacity:.45}
+.game.ok .ic{background:#E3EAE8!important}
+.game.ok .ic img{opacity:.45;filter:grayscale(.6)}
+.game.ok .no{background:var(--teal);opacity:1}
+.game.ok .tm{opacity:1}
+
 /* ---------- 배경 비교 시안 (고른 뒤 하나만 남김) ---------- */
 html.bg-b{--mint:#F7FAF9;--mint-2:#E6EFEC;--line:#DCE8E4}
 html.bg-b body{background-image:linear-gradient(rgba(14,159,142,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(14,159,142,.09) 1px,transparent 1px);background-size:22px 22px}

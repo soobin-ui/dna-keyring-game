@@ -102,7 +102,7 @@ function home() {
       const v = run[g.id];
       const note = st === 'ok' ? `✓ 완료 · ${g.id === 'spot' ? `걸린 시간 ${v}` : `${v} 정답`}` : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
       return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
-        <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${k + 1}</b></span>
+        <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${st === 'ok' ? '✓' : k + 1}</b></span>
         <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
       </button></li>`;
     }).join('')}
