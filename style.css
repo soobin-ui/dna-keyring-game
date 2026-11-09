@@ -5,8 +5,8 @@
  * pre-emit critique: P4 H4 E4 S5 R4 V5
  */
 :root{
-  --mint:#FFF6E9; --mint-2:#FBE7CF; --tile-line:transparent; --white:#FFFFFF; --paper:#F8FCFA;
-  --ink:#17323A; --ink-2:#4B6A70; --ink-3:#86A0A4; --line:#F0DFC8;
+  --mint:#DDF2EC; --mint-2:#C6E9DF; --tile-line:rgba(255,255,255,.7); --white:#FFFFFF; --paper:#F8FCFA;
+  --ink:#17323A; --ink-2:#4B6A70; --ink-3:#86A0A4; --line:#BFE0D6;
   --teal:#0E9F8E; --teal-d:#0B7F72; --teal-wash:#DDF4EF; --coral:#EF5350; --coral-wash:#FDE7E6; --amber:#F4A62A;
   --screen:#17323A; --lcd:#5BEBDB;
   --A:#34B36B; --T:#EF5350; --G:#F4A62A; --C:#3D8BF2;
@@ -24,9 +24,9 @@ html{-webkit-text-size-adjust:100%;background:var(--mint)}
 body{font-family:var(--font-body);font-size:17px;line-height:1.55;color:var(--ink);word-break:keep-all;overflow-wrap:break-word;
   background:var(--mint);
   background-image:linear-gradient(var(--tile-line) 2px,transparent 2px),linear-gradient(90deg,var(--tile-line) 2px,transparent 2px);
-  background-size:64px 64px;
+  background-size:56px 56px;background-position:-2px -2px;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
-#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh}
+#app{position:relative;z-index:1;max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;text-align:inherit}
 button:focus-visible{outline:3px solid var(--C);outline-offset:2px}
 b{font-weight:700}
@@ -58,11 +58,23 @@ img{display:block;max-width:100%}
 .game .dd{display:block;font-size:14.5px;color:var(--ink-2);margin-top:2px;line-height:1.45}
 .game .tm{display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--teal-d)}
 .game .go{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:grid;place-items:center;font-size:17px}
-.foot{padding:var(--space-3) var(--space-4) var(--space-10);font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-align:center}
+.foot{padding:var(--space-3) var(--space-4) var(--space-10);font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+
+/* ---------- 한 화면 첫 화면 ---------- */
+.home{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+.home .pick{flex:1;display:flex;flex-direction:column;justify-content:center;gap:var(--space-3);padding:var(--space-5) var(--space-4) var(--space-2)}
+.home .game{margin:0;flex:0 1 auto;box-shadow:0 3px 0 var(--line),0 10px 24px rgba(23,50,58,.06)}
+.status{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--lcd);background:var(--screen);padding:5px 12px;border-radius:99px}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--lcd);animation:led 1.2s steps(2) infinite}
+.home .intro-h h1{margin-top:var(--space-3)}
+.home .intro-h p{max-width:220px}
+.home .foot{padding-bottom:var(--space-5)}
+@media (max-height:700px){.home .game .dd{display:none}.home .intro-h h1{font-size:28px}.home .pick{gap:var(--space-2)}}
+@media (max-height:600px){.home .top{display:none}.home .game .ic{width:62px;height:62px}.home .game .ic img{width:54px;height:54px}.home .pick{padding-top:var(--space-3)}.home .intro-h p{display:none}}
 
 /* ---------- 실험 화면 공통 ---------- */
 .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:var(--space-2);height:58px;padding:0 var(--space-4) 0 var(--space-1);
-  background:rgba(255,246,233,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  background:rgba(221,242,236,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .bk{height:44px;padding:0 var(--space-3);font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap}
 .bar-t{font-family:var(--font-head);flex:1;min-width:0;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar-c{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--white);background:var(--teal);border-radius:99px;padding:3px 12px;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -152,9 +164,9 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 .slip{position:relative;width:100%;max-width:480px;background:var(--paper);border-radius:24px 24px 0 0;padding:var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom));
   transform:translateY(40px);transition:transform var(--dur-3) var(--ease-out);max-height:92vh;overflow:auto}
 .overlay.show .slip{transform:none}
-.slip-art{width:96px;height:96px;margin:-4px auto 0}
+.slip-art{width:72px;height:72px;margin:-4px 0 0 -6px}
 .slip-top{display:flex;justify-content:space-between;font-family:var(--font-mono);font-weight:700;font-size:12px;color:var(--ink-3);letter-spacing:.03em;border-bottom:1px dashed var(--line);padding-bottom:var(--space-2);margin-top:var(--space-2)}
-.slip-h{font-family:var(--font-head);font-size:25px;font-weight:700;line-height:1.3;margin:var(--space-4) 0 var(--space-3);text-align:center}
+.slip-h{font-family:var(--font-head);font-size:25px;font-weight:700;line-height:1.3;margin:var(--space-3) 0 var(--space-3)}
 .slip-h span{color:var(--teal)}
 .slip-rows{list-style:none;font-family:var(--font-mono);font-size:15px;border-bottom:1px dashed var(--line);padding-bottom:var(--space-3)}
 .slip-rows li{display:flex;align-items:baseline;gap:6px;padding:4px 0}
@@ -165,5 +177,15 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 .slip-note p{font-size:15.5px;margin-top:2px}
 .slip-btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-2)}
 
+/* ---------- 움직이는 실험실 배경 ---------- */
+.lab-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;max-width:480px;margin:0 auto}
+.lab-ic{position:absolute;opacity:.32;animation:labFloat 12s var(--ease-in-out) infinite alternate;will-change:transform}
+@keyframes labFloat{
+  0%{transform:translate(0,0) rotate(-8deg)}
+  50%{transform:translate(10px,-18px) rotate(4deg)}
+  100%{transform:translate(-8px,-34px) rotate(10deg)}
+}
+.lab-helix{position:absolute;right:-34px;top:4%;width:150px;height:450px;opacity:.55}
+@media (prefers-reduced-motion:reduce){.lab-ic{animation:none}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .intro-h h1,.game .tt,.slip-h,.intro .big{font-weight:800}
