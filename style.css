@@ -221,14 +221,13 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 
 /* ---------- 키링: 실험마다 아래부터 채워짐 + 살랑 흔들림 ---------- */
 .kr{flex:none;width:104px;display:flex;flex-direction:column;align-items:center;gap:6px;margin-right:-4px}
-.kr-sway{position:relative;width:96px;height:144px;transform-origin:50% 4%;animation:sway 3.6s var(--ease-in-out) infinite alternate}
-@keyframes sway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+.kr-sway{position:relative;width:96px;height:144px;transform-origin:50% 4%;animation:sway 2.4s var(--ease-in-out) infinite alternate}
+@keyframes sway{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
 .kr-sway img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .kr-base{opacity:.9;filter:grayscale(1) brightness(1.08) drop-shadow(1.6px 0 0 rgba(23,50,58,.55)) drop-shadow(-1.6px 0 0 rgba(23,50,58,.55)) drop-shadow(0 1.6px 0 rgba(23,50,58,.55)) drop-shadow(0 -1.6px 0 rgba(23,50,58,.55))}
 .kr-fill{filter:drop-shadow(1.6px 0 0 rgba(23,50,58,.55)) drop-shadow(-1.6px 0 0 rgba(23,50,58,.55)) drop-shadow(0 1.6px 0 rgba(23,50,58,.55)) drop-shadow(0 -1.6px 0 rgba(23,50,58,.55))}
-.kr-sway::before{content:"";position:absolute;left:8%;right:8%;top:30%;bottom:-2%;border-radius:18px;background:rgba(255,255,255,.55)}
 .kr-fill{-webkit-clip-path:inset(100% 0 0 0);clip-path:inset(100% 0 0 0);transition:clip-path 1.3s var(--ease-out),-webkit-clip-path 1.3s var(--ease-out)}
-.kr.bump .kr-sway{animation:sway 3.6s var(--ease-in-out) infinite alternate,bump .6s var(--ease-out) 1.2s 1}
+.kr.bump .kr-sway{animation:sway 2.4s var(--ease-in-out) infinite alternate,bump .6s var(--ease-out) 1.2s 1}
 @keyframes bump{50%{scale:1.08}}
 .kr-lbl{font-family:var(--font-mono);font-weight:700;font-size:13px;color:var(--ink-2);background:var(--white);border-radius:99px;padding:2px 10px;white-space:nowrap;box-shadow:0 2px 0 var(--line)}
 .kr.full .kr-lbl{background:var(--teal);color:var(--white);font-family:var(--font-body)}
@@ -262,6 +261,10 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
   .home .top{padding-top:0}
 }
 
-/* ---------- 배경: 선반 아래 민트에서 흰색으로 / 제목 강조 빨강 ---------- */
-body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 110px,#E4F5EC 55%,#FFFFFF 100%) fixed}
-.intro-h h1 em{color:#E8453F}
+/* ---------- 배경 4안: 첫 화면 민트→진한 청록 / 게임 화면은 밝은 민트→흰색 ---------- */
+body{background:linear-gradient(180deg,#BFE6D1 0,#E4F5EC 45%,#FFFFFF 100%) fixed}
+.home{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 110px,#5FB9A4 62%,#0F6F66 100%)}
+.intro-h h1 em{color:#1F5BD8}
+.home .foot{color:#CDEDE5}
+.home .game{box-shadow:0 4px 0 rgba(0,0,0,.12),0 12px 28px rgba(0,40,36,.18)}
+.home .cta .btn{background:#FFC93B;color:#17323A;box-shadow:0 4px 0 #D9A41A}
