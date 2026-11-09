@@ -16,34 +16,6 @@ const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
 const V = '?v=3';
-/* ================= 첫 화면 DNA 나선 (글자 뒤가 아닌 오른쪽 자리에서만 움직임) ================= */
-function helix(hx) {
-  const cols = ['#34B36B', '#EF5350', '#F4A62A', '#3D8BF2'], pair = [1, 0, 3, 2];
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const t0 = performance.now();
-  let raf;
-  const draw = now => {
-    const t = (now - t0) / 1000, cx = 50, amp = 34, H = 220, N = 10;
-    const ph = y => y / H * Math.PI * 2.2 + t * 0.7;
-    let rungs = '', p1 = '', p2 = '';
-    for (let j = 0; j < N; j++) {
-      const y = 10 + j * (H - 4) / (N - 1), a = Math.sin(ph(y)), d = Math.cos(ph(y));
-      const x1 = cx + amp * a, x2 = cx - amp * a, op = (0.5 + 0.5 * Math.abs(d)).toFixed(2);
-      rungs += `<line x1="${x1.toFixed(1)}" y1="${y.toFixed(1)}" x2="${cx}" y2="${y.toFixed(1)}" stroke="${cols[j % 4]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`
-             + `<line x1="${cx}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${cols[pair[j % 4]]}" stroke-width="6" stroke-linecap="round" opacity="${op}"/>`;
-    }
-    for (let i = 0; i <= 50; i++) {
-      const y = 4 + i * (H + 4) / 50, a = Math.sin(ph(y));
-      p1 += (i ? 'L' : 'M') + (cx + amp * a).toFixed(1) + ',' + y.toFixed(1);
-      p2 += (i ? 'L' : 'M') + (cx - amp * a).toFixed(1) + ',' + y.toFixed(1);
-    }
-    hx.innerHTML = rungs + `<path d="${p1}" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/><path d="${p2}" fill="none" stroke="#9FD9CB" stroke-width="7" stroke-linecap="round"/>`;
-    if (!reduce) raf = requestAnimationFrame(draw);
-  };
-  raf = requestAnimationFrame(draw);
-  return () => cancelAnimationFrame(raf);
-}
-
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -81,6 +53,30 @@ function report({ id, code, icon, head, rows, note, again }) {
   </div>`);
 }
 
+// 키링 진행: 실험 하나 끝날 때마다 아래부터 1/3씩 채워짐. 새로 채워진 단계만 움직임으로 보여 줌
+const KR_SHOWN = 'dna-kr-shown';
+function keyring() {
+  const fill = document.getElementById('krFill'), lbl = document.getElementById('krLbl'), box = document.getElementById('kr');
+  if (!fill) return;
+  const stage = GAMES.filter(g => run[g.id]).length;
+  let shown = 0;
+  try { shown = +sessionStorage.getItem(KR_SHOWN) || 0; } catch (e) {}
+  if (shown > stage) shown = stage;
+  const clip = k => `inset(${(100 - k * 100 / 3).toFixed(2)}% 0 0 0)`;
+  const label = k => k >= 3 ? '키링 완성!' : `${k} / 3`;
+  fill.style.clipPath = fill.style.webkitClipPath = clip(shown);
+  lbl.textContent = label(shown);
+  box.classList.toggle('full', shown >= 3);
+  if (stage > shown) {
+    setTimeout(() => {
+      fill.style.clipPath = fill.style.webkitClipPath = clip(stage);
+      box.classList.add('bump');
+      setTimeout(() => { lbl.textContent = label(stage); box.classList.toggle('full', stage >= 3); }, 700);
+    }, 450);
+  }
+  try { sessionStorage.setItem(KR_SHOWN, stage); } catch (e) {}
+}
+
 /* ================= 첫 화면 ================= */
 function home() {
   const n = nextIdx(), all = n < 0;
@@ -89,10 +85,16 @@ function home() {
   <header class="intro-h">
     <div class="intro-t">
       <span class="status"><i></i>온수조 처리 중</span>
-      <h1>키링 완성까지<br><span>약 20분</span></h1>
-      <p>기다리는 동안 실험 3개를 순서대로 해 보세요.</p>
+      <h1>내 DNA 키링이<br><span>만들어지는 중!</span></h1>
+      <p>실험을 하나 끝낼 때마다 키링이 조금씩 완성돼요.</p>
     </div>
-    <svg class="hd-helix" id="helix" viewBox="0 0 100 228" aria-hidden="true"></svg>
+    <div class="kr" id="kr" role="img" aria-label="키링 진행 ${GAMES.filter(g => run[g.id]).length}/3">
+      <div class="kr-sway">
+        <img class="kr-base" src="img/keyring.png${V}" alt="" width="200" height="300">
+        <img class="kr-fill" id="krFill" src="img/keyring.png${V}" alt="" width="200" height="300">
+      </div>
+      <span class="kr-lbl" id="krLbl"></span>
+    </div>
   </header>
   <ol class="pick steps">
     ${GAMES.map((g, k) => {
@@ -110,9 +112,9 @@ function home() {
     : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>`}</div>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
   </div>`;
-  onCleanup(helix(document.getElementById('helix')));
+  keyring();
   const rs = document.getElementById('reset');
-  if (rs) rs.onclick = () => { run = {}; saveRun(); home(); };
+  if (rs) rs.onclick = () => { run = {}; saveRun(); try { sessionStorage.removeItem(KR_SHOWN); } catch (e) {} home(); };
 }
 
 /* ================= 최종 결과 ================= */
@@ -128,7 +130,7 @@ function done() {
     <p class="done-p">키링이 완성될 때까지 조금만 기다려 주세요.</p>
     <button class="btn line" id="again">처음부터 다시 하기</button>
   </main>`;
-  document.getElementById('again').onclick = () => { run = {}; saveRun(); location.hash = '#/'; };
+  document.getElementById('again').onclick = () => { run = {}; saveRun(); try { sessionStorage.removeItem(KR_SHOWN); } catch (e) {} location.hash = '#/'; };
 }
 
 /* ================= 게임 1: 틀린그림찾기 ================= */
