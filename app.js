@@ -76,8 +76,16 @@ const GAMES = [
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
+// 순서대로 3개 진행: 끝낸 실험의 결과를 이 휴대폰에만 저장
+const RUN_KEY = 'dna-run-v1';
+let run = (() => { try { return JSON.parse(localStorage.getItem(RUN_KEY)) || {}; } catch (e) { return {}; } })();
+const saveRun = () => { try { localStorage.setItem(RUN_KEY, JSON.stringify(run)); } catch (e) {} };
+const nextIdx = () => GAMES.findIndex(g => !run[g.id]);
+const markDone = (id, v) => { run[id] = v; saveRun(); };
+
 function bar(title, count = '') {
-  return `<nav class="bar"><button class="bk" data-go="#/">← 실험 목록</button><span class="bar-t">${title}</span><span class="bar-c" id="bc">${count}</span></nav>`;
+  const i = GAMES.findIndex(g => g.title === title);
+  return `<nav class="bar"><button class="bk" data-go="#/">← 처음</button><span class="bar-t"><em>실험 ${i + 1}/3</em>${title}</span><span class="bar-c" id="bc">${count}</span></nav>`;
 }
 function sheet(html) {
   const d = document.createElement('div');
@@ -87,35 +95,61 @@ function sheet(html) {
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
-function report({ code, icon, head, rows, note, again }) {
+function report({ id, code, icon, head, rows, note, again }) {
+  const i = GAMES.findIndex(g => g.id === id), nx = GAMES[i + 1];
   return sheet(`<div class="slip" role="dialog" aria-modal="true">
     <img class="slip-art" src="img/${icon}.png${V}" alt="">
     <div class="slip-top"><span>분석 리포트 · ${code}</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
     <h3 class="slip-h">${head}</h3>
     <ul class="slip-rows">${rows.map(([k, v]) => `<li><span>${k}</span><i></i><b>${v}</b></li>`).join('')}</ul>
     <div class="slip-note"><span>결과 해석</span><p>${note}</p></div>
-    <div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="#/">다른 실험</button></div>
+    <div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="${nx ? '#/' + nx.id : '#/done'}">${nx ? '다음 실험 →' : '최종 결과 보기'}</button></div>
   </div>`);
 }
 
 /* ================= 첫 화면 ================= */
 function home() {
+  const n = nextIdx(), all = n < 0;
   app.innerHTML = `<div class="home">
   <div class="top"><span class="live"><i></i>BIO PRECISION LAB</span><span>바이오 정밀검진센터</span></div>
   <header class="intro-h">
     <span class="status"><i></i>온수조 처리 중 · DNA 키링</span>
     <h1>키링 완성까지<br><span>약 20분</span></h1>
-    <p>기다리는 동안 실험 하나를 골라 해 보세요.</p>
+    <p>기다리는 동안 실험 3개를 순서대로 해 보세요.</p>
   </header>
-  <section class="pick">
-    ${GAMES.map(g => `<button class="game" data-go="#/${g.id}">
-      <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"></span>
-      <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${g.time}</span></span>
-      <span class="go">→</span>
-    </button>`).join('')}
-  </section>
+  <ol class="pick steps">
+    ${GAMES.map((g, k) => {
+      const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
+      const note = st === 'ok' ? `✓ 완료 · ${run[g.id]}` : st === 'now' ? '지금 할 차례' : '앞 실험을 마치면 열려요';
+      return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
+        <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${k + 1}</b></span>
+        <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
+      </button></li>`;
+    }).join('')}
+  </ol>
+  <div class="cta">${all
+    ? `<button class="btn" data-go="#/done">최종 결과 보기</button><button class="reset" id="reset">처음부터 다시 하기</button>`
+    : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>`}</div>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
   </div>`;
+  const rs = document.getElementById('reset');
+  if (rs) rs.onclick = () => { run = {}; saveRun(); home(); };
+}
+
+/* ================= 최종 결과 ================= */
+function done() {
+  if (nextIdx() >= 0) { location.hash = '#/'; return; }
+  app.innerHTML = `<nav class="bar"><button class="bk" data-go="#/">← 처음</button><span class="bar-t">최종 결과</span><span class="bar-c">3/3</span></nav>
+  <main class="g done">
+    <span class="tag">ANALYSIS COMPLETE</span>
+    <h2 class="done-h">실험 3개를<br><span>모두 마쳤어요!</span></h2>
+    <ul class="done-list">
+      ${GAMES.map((g, k) => `<li><img src="img/${g.icon}.png${V}" alt="" width="56" height="56"><span><small>실험 ${k + 1}</small>${g.title}</span><b>${run[g.id]}</b></li>`).join('')}
+    </ul>
+    <p class="done-p">키링이 완성될 때까지 조금만 기다려 주세요.</p>
+    <button class="btn line" id="again">처음부터 다시 하기</button>
+  </main>`;
+  document.getElementById('again').onclick = () => { run = {}; saveRun(); location.hash = '#/'; };
 }
 
 /* ================= 게임 1: 틀린그림찾기 ================= */
@@ -184,9 +218,9 @@ function spot() {
     const sec = (performance.now() - t0) / 1000;
     tm.textContent = fmt(sec);
     const best = store.spot ? Math.min(store.spot.best, sec) : sec;
-    store.spot = { best }; save();
+    store.spot = { best }; save(); markDone('spot', fmt(sec));
     setTimeout(() => report({
-      code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
+      id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
       head: `다른 곳 7개를 <span>모두</span> 찾았어요!`,
       rows: [['찾은 곳', '7 / 7'], ['걸린 시간', fmt(sec)], ['힌트', `${hints}회`], ['내 최고 기록', fmt(best)]],
       note: '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
@@ -275,9 +309,9 @@ function pattern() {
   function finish() {
     const sec = (performance.now() - t0) / 1000, total = ROUNDS.length;
     const best = store.pattern ? Math.max(store.pattern.best, score) : score;
-    store.pattern = { best, total }; save();
+    store.pattern = { best, total }; save(); markDone('pattern', `${score}/${total}`);
     report({
-      code: 'EXP-02', icon: 'icon_pattern', again: '#/pattern',
+      id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', again: '#/pattern',
       head: score === total ? `<span>${total}문제</span> 모두 정답!` : `${total}문제 중 <span>${score}개</span> 정답`,
       rows: [['똑같은 줄', '5문제'], ['짝꿍 줄', '3문제'], ['걸린 시간', fmt(sec)], ['내 최고 점수', `${best} / ${total}`]],
       note: 'DNA의 두 줄은 항상 A–T, G–C로 짝을 지어요. 그래서 세포가 둘로 나뉠 때 한 줄만 보고도 나머지 한 줄을 똑같이 만들어 낼 수 있어요.',
@@ -332,9 +366,9 @@ function ox() {
   }
   function finish() {
     const total = qs.length, best = store.ox ? Math.max(store.ox.best, score) : score;
-    store.ox = { best, total }; save();
+    store.ox = { best, total }; save(); markDone('ox', `${score}/${total}`);
     report({
-      code: 'EXP-03', icon: 'icon_ox', again: '#/ox',
+      id: 'ox', code: 'EXP-03', icon: 'icon_ox', again: '#/ox',
       head: score === total ? `<span>만점!</span> 5문제를 다 맞혔어요` : `${total}문제 중 <span>${score}개</span> 정답`,
       rows: [['맞힌 문제', `${score} / ${total}`], ['내 최고 점수', `${best} / ${total}`]],
       note: '문제는 할 때마다 섞여서 나와요. 다시 하면 처음 보는 문제를 만날 수 있어요.',
@@ -348,7 +382,7 @@ function route() {
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
-  ({ spot, pattern, ox }[h] || home)();
+  ({ spot, pattern, ox, done }[h] || home)();
 }
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-go]');
