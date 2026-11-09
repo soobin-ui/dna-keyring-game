@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=11';
+const V = '?v=12';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -166,17 +166,32 @@ function done() {
 /* ================= 게임 1: 틀린그림찾기 ================= */
 // 좌표는 400×300 기준 (그림 1200×900)
 const DIFFS = [
-  { x: 61, y: 69, r: 42, name: '시계 바늘' },
-  { x: 180, y: 84, r: 50, name: '포스터 DNA 가닥 색' },
-  { x: 366, y: 90, r: 22, name: '선반 병 색' },
-  { x: 136, y: 186, r: 17, name: '시험관 뚜껑 색' },
-  { x: 234, y: 224, r: 27, name: '비커 물 높이' },
-  { x: 298, y: 231, r: 26, name: '페트리 접시 색' },
-  { x: 363, y: 163, r: 24, name: '화분 잎 하나' },
+  { x: 46, y: 97, r: 16, name: '시계 7시 눈금' },
+  { x: 181, y: 125, r: 18, name: '포스터 DNA 가로대' },
+  { x: 275, y: 126, r: 15, name: '선반 왼쪽 받침대' },
+  { x: 172, y: 216, r: 17, name: '파란 시험관 물 높이' },
+  { x: 234, y: 224, r: 24, name: '비커 물 높이' },
+  { x: 363, y: 163, r: 20, name: '화분 맨 위 잎' },
+  { x: 201, y: 284, r: 22, name: '가운데 서랍 손잡이' },
 ];
 const shotSVG = B => `<svg class="shot" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
   <image href="img/spot_${B ? 'b' : 'a'}.jpg${V}" width="400" height="300"/><g class="marks"></g></svg>`;
 function spot() {
+  app.innerHTML = bar('틀린그림찾기', '0/7') + `
+  <main class="g spot-intro">
+    <span class="tag">HOW TO PLAY</span>
+    <h2 class="si-title">두 그림에서<br><em>다른 곳 7개</em>를 찾아보세요</h2>
+    <ol class="si-rules">
+      <li><b>1</b><span>위 그림 A와 아래 그림 B를 비교해요.</span></li>
+      <li><b>2</b><span>다른 곳을 찾으면 그 자리를 손가락으로 눌러요.</span></li>
+      <li><b>3</b><span>잘 모르겠으면 <u>힌트</u> 버튼을 눌러요.</span></li>
+    </ol>
+    <p class="si-tip">작은 것까지 꼼꼼히 보세요! 시작을 누르면 시간이 재기 시작해요.</p>
+    <button class="btn si-start" id="spotStart">시작하기</button>
+  </main>`;
+  document.getElementById('spotStart').onclick = playSpot;
+}
+function playSpot() {
   const found = new Set();
   let hints = 0, done = false;
   const t0 = performance.now();

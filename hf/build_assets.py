@@ -37,47 +37,64 @@ def hue_shift(arr, box, h_from, h_to, h_new, s_min=0.25, v_min=0.15):
 
 
 def make_spot():
+    """v2(어렵게): 색 바꾸기 대신 '없어진 것·모양' 7곳. 다른 곳은 원본 픽셀 그대로."""
     a = np.array(Image.open(os.path.join(RAW, 'spot_base_v1.png')).convert('RGB'))
     b = a.copy()
 
-    # 1) 시계 바늘: 원래 바늘 지우고 다른 시각으로 다시 그림
-    ox, oy = 91, 137                      # 시계 크롭 원점(원본 좌표)
-    cx, cy = ox + 268, oy + 265
-    mask = np.zeros(b.shape[:2], np.uint8)
-    for ddx, ddy in ((0, 0), (5, 8), (9, 14)):   # 바늘 + 아래로 진 그림자까지
-        cv2.line(mask, (cx + ddx, cy + ddy), (ox + 165 + ddx, oy + 205 + ddy), 255, 44)
-        cv2.line(mask, (cx + ddx, cy + ddy), (ox + 430 + ddx, oy + 172 + ddy), 255, 36)
-    cv2.circle(mask, (cx + 4, cy + 6), 40, 255, -1)
-    b = cv2.inpaint(b, mask, 9, cv2.INPAINT_TELEA)
-    # 지우다 같이 사라진 2시 눈금: 원본의 10시 눈금을 좌우로 뒤집어 붙임
-    patch = a[oy + 148: oy + 212, ox + 80: ox + 142][:, ::-1]
-    tx = 2 * 268 - 142
-    b[oy + 148: oy + 212, ox + tx: ox + tx + 62] = patch
-    big = Image.new('RGBA', (b.shape[1] * 2, b.shape[0] * 2), (0, 0, 0, 0))
-    d = ImageDraw.Draw(big)
-    C2 = (cx * 2, cy * 2)
-    hand = (58, 62, 66, 255)
-    for (dx, dy, w) in [(0.0, -1.0, 34), (0.62, 0.78, 46)]:   # 분침 12시, 시침 5시 방향
-        L = 360 if w == 34 else 230
-        end = (C2[0] + dx * L, C2[1] + dy * L)
-        d.line([C2, end], fill=hand, width=w)
-        d.ellipse([end[0] - w / 2, end[1] - w / 2, end[0] + w / 2, end[1] + w / 2], fill=hand)
-    d.ellipse([C2[0] - 46, C2[1] - 46, C2[0] + 46, C2[1] + 46], fill=(48, 52, 56, 255))
-    over = big.resize((b.shape[1], b.shape[0]), Image.LANCZOS)
-    bi = Image.fromarray(b).convert('RGBA')
-    bi.alpha_composite(over)
-    b = np.array(bi.convert('RGB'))
+    def hsv_mask(box, cond):
+        x0, y0, x1, y1 = box
+        sub = b[y0:y1, x0:x1]
+        hsv = cv2.cvtColor(sub, cv2.COLOR_RGB2HSV_FULL).astype(np.float32)
+        h, s_, v = hsv[..., 0] * 360 / 255, hsv[..., 1] / 255, hsv[..., 2] / 255
+        m = np.zeros(b.shape[:2], np.uint8)
+        m[y0:y1, x0:x1] = cond(h, s_, v).astype(np.uint8) * 255
+        return m
 
-    # 2) 포스터 보라색 가닥 → 주황
-    hue_shift(b, (380, 55, 545, 375), 255, 315, 28)
-    # 3) 선반 오른쪽 병의 파란 물 → 보라
-    hue_shift(b, (893, 185, 982, 268), 190, 235, 285)
-    # 4) 두 번째 시험관 초록 뚜껑 → 빨강
-    hue_shift(b, (326, 456, 370, 491), 85, 160, 0)
-    # 5) 페트리 접시 분홍 → 노랑
-    hue_shift(b, (683, 555, 842, 625), 300, 355, 52, s_min=0.15)
+    def inpaint(mask, grow=5, r=9):
+        nonlocal b
+        if grow: mask = cv2.dilate(mask, np.ones((grow, grow), np.uint8))
+        b = cv2.inpaint(b, mask, r, cv2.INPAINT_TELEA)
 
-    # 6) 비커 물 높이 낮추기: 빈 유리 줄을 아래로 늘리고 수면을 내림
+    # 1) 시계 7시 눈금 없애기
+    m = np.zeros(b.shape[:2], np.uint8); cv2.circle(m, (271, 562), 24, 255, -1); inpaint(m, 0, 7)
+    # 2) 포스터 DNA 초록·빨강 가로대 하나 없애기
+    rung = hsv_mask((955, 698, 1160, 758), lambda h, s_, v: (s_ > .30) & (((h > 80) & (h < 170)) | (h < 22) | (h > 345)))
+    rung = cv2.dilate(rung, np.ones((5, 5), np.uint8))
+    strand = hsv_mask((940, 690, 1180, 770), lambda h, s_, v: (s_ > .35) & (h > 185) & (h < 310))   # 파랑·보라 가닥은 보호
+    rung[strand > 0] = 0
+    inpaint(rung, 0, 5)
+    # 3) (아래 clone 함수 정의 + 파란 시험관 물 높이)
+    def clone(dst, src_dx, src_dy, feather=10):
+        nonlocal b
+        x0, y0, x1, y1 = dst
+        patch = a[y0 + src_dy:y1 + src_dy, x0 + src_dx:x1 + src_dx].astype(np.float32)
+        hh, ww = y1 - y0, x1 - x0
+        w = np.ones((hh, ww), np.float32)
+        for i in range(feather):
+            t = (i + 1) / (feather + 1)
+            w[i, :] = np.minimum(w[i, :], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t)
+            w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t)
+        b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
+    # 파란 시험관 물 높이 낮추기: 랙 위 빈 유리 줄을 아래로 이어 붙이고 수면을 50px 내림
+    tx0, tx1, S, top = 960, 1046, 50, 1222
+    src = b.copy()
+    b[top + S:top + 30 + S, tx0:tx1] = src[top:top + 30, tx0:tx1]
+    b[top:top + S, tx0:tx1] = src[1112:1112 + S, tx0:tx1]
+    # 4) 가운데 서랍 손잡이 없애기
+    clone((1000, 1590, 1173, 1716), -170, 0, 10)
+    clone((1173, 1590, 1346, 1716), 160, 0, 10)
+    clone((1150, 1590, 1196, 1716), -170, 0, 0)   # 두 조각 이음매는 깨끗한 쪽으로 한 번 더
+    # 5) 왼쪽 선반 받침대 없애기: 타일 한 칸 옆(오른쪽 235px)의 벽을 그대로 옮겨 붙임
+    x0, y0, x1, y1, dx = 1562, 668, 1648, 805, 235
+    patch = a[y0:y1, x0 + dx:x1 + dx].astype(np.float32)
+    w = np.ones((y1 - y0, x1 - x0), np.float32)
+    f = 8
+    for i in range(f):
+        t = (i + 1) / (f + 1)
+        w[:, i] = np.minimum(w[:, i], t); w[:, -1 - i] = np.minimum(w[:, -1 - i], t); w[-1 - i, :] = np.minimum(w[-1 - i, :], t)
+    b[y0:y1, x0:x1] = (b[y0:y1, x0:x1] * (1 - w[..., None]) + patch * w[..., None]).astype(np.uint8)
+
+    # 6) 비커 물 높이 낮추기 (빈 유리 줄을 아래로 늘리고 수면을 내림)
     bx, by = P(520, 460)
     x0, x1 = bx + 40, bx + 318
     shift = 70
@@ -92,8 +109,8 @@ def make_spot():
     h = hsv[..., 0].astype(np.float32) * 360 / 255
     green = ((h > 55) & (h < 110) & (hsv[..., 1] > 90)).astype(np.uint8) * 255
     leaf = np.zeros_like(green)
-    cv2.ellipse(leaf, (247, 70), (70, 52), 0, 0, 360, 255, -1)          # 잎
-    cv2.rectangle(leaf, (228, 112), (256, 168), 255, -1)                  # 잎자루 윗부분
+    cv2.ellipse(leaf, (247, 70), (70, 52), 0, 0, 360, 255, -1)
+    cv2.rectangle(leaf, (228, 112), (256, 168), 255, -1)
     m = cv2.dilate(cv2.bitwise_and(green, leaf), np.ones((7, 7), np.uint8))
     full = np.zeros(b.shape[:2], np.uint8)
     full[py: py + 330, px: px + 466] = m
@@ -137,5 +154,5 @@ def make_icons():
 
 
 if __name__ == '__main__':
-    make_spot(); make_hero(); make_icons()
+    make_spot()
     print('done')
