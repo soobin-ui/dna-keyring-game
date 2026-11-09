@@ -264,7 +264,7 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 /* ---------- 배경 4안: 첫 화면 민트→진한 청록 / 게임 화면은 밝은 민트→흰색 ---------- */
 body{background:linear-gradient(180deg,#BFE6D1 0,#E4F5EC 45%,#FFFFFF 100%) fixed}
 .home{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 110px,#5FB9A4 62%,#0F6F66 100%)}
-.intro-h h1 em{color:#1F5BD8}
+.intro-h h1 em{color:#17323A;background:linear-gradient(transparent 55%,#FFC93B 55%,#FFC93B 92%,transparent 92%);padding:0 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .home .foot{color:#CDEDE5}
 .home .game{box-shadow:0 4px 0 rgba(0,0,0,.12),0 12px 28px rgba(0,40,36,.18)}
 .home .cta .btn{background:#FFC93B;color:#17323A;box-shadow:0 4px 0 #D9A41A}
