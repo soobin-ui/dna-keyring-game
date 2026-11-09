@@ -81,6 +81,7 @@ function keyring() {
 function home() {
   const n = nextIdx(), all = n < 0;
   app.innerHTML = `<div class="home">
+  <div class="shelf" aria-hidden="true"><img src="img/shelf.jpg${V}" alt="" width="960" height="303"></div>
   <div class="top"><span class="live">BIOHEALTH PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
   <header class="intro-h">
     <div class="intro-t">

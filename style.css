@@ -5,8 +5,8 @@
  * pre-emit critique: P4 H4 E4 S5 R4 V5
  */
 :root{
-  --mint:#DDF2EC; --mint-2:#C6E9DF; --tile-line:rgba(255,255,255,.7); --white:#FFFFFF; --paper:#F8FCFA;
-  --ink:#17323A; --ink-2:#4B6A70; --ink-3:#86A0A4; --line:#BFE0D6;
+  --mint:#BFE6D1; --mint-2:#A9DCC2; --tile-line:transparent; --white:#FFFFFF; --paper:#F8FCFA;
+  --ink:#17323A; --ink-2:#4B6A70; --ink-3:#86A0A4; --line:#9CCDB4;
   --teal:#0E9F8E; --teal-d:#0B7F72; --teal-wash:#DDF4EF; --coral:#EF5350; --coral-wash:#FDE7E6; --amber:#F4A62A;
   --screen:#17323A; --lcd:#5BEBDB;
   --A:#34B36B; --T:#EF5350; --G:#F4A62A; --C:#3D8BF2;
@@ -98,7 +98,7 @@ img{display:block;max-width:100%}
 
 /* ---------- 실험 화면 공통 ---------- */
 .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:var(--space-2);height:58px;padding:0 var(--space-4) 0 var(--space-1);
-  background:rgba(221,242,236,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  background:rgba(191,230,209,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .bk{height:44px;padding:0 var(--space-3);font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap}
 .bar-t{font-family:var(--font-head);flex:1;min-width:0;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar-c{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--white);background:var(--teal);border-radius:99px;padding:3px 12px;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -244,15 +244,18 @@ svg.shot .miss path{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round;fill
 .game.ok .no{background:var(--teal);opacity:1}
 .game.ok .tm{opacity:1}
 
-/* ---------- 배경 비교 시안 (고른 뒤 하나만 남김) ---------- */
-html.bg-b{--mint:#F7FAF9;--mint-2:#E6EFEC;--line:#DCE8E4}
-html.bg-b body{background-image:linear-gradient(rgba(14,159,142,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(14,159,142,.09) 1px,transparent 1px);background-size:22px 22px}
-html.bg-c{--mint:#E8F1FC;--mint-2:#D3E3F7;--line:#CFDDF0}
-html.bg-c body{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 1 54 16v30L28 61 2 46V16zM28 61v36M2 46 0 47M54 46l2 1M0 0M28 97' fill='none' stroke='%233D8BF2' stroke-opacity='.13' stroke-width='1.5'/%3E%3C/svg%3E");background-size:56px 97px}
-html.bg-d{--mint:#14293A;--mint-2:#1E3A4F;--line:#0C1C28}
-html.bg-d body{background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:28px 28px}
-html.bg-d .top{color:#7FE3D6} html.bg-d .intro-h h1{color:#fff} html.bg-d .intro-h p{color:#B8CAD3}
-html.bg-d .intro-h h1 em{color:#5BEBDB} html.bg-d .status{background:#0B8F80;color:#fff} html.bg-d .status i{background:#fff}
-html.bg-d .foot{color:#7E97A5} html.bg-d .kr-base{opacity:.25;filter:grayscale(1) brightness(2)}
-html.bg-e{--mint:#FFF6E1;--mint-2:#F8E6BE;--line:#EEDDB8}
-html.bg-e body{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23C89B3C' stroke-opacity='.16' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 14h12M20 14v12L10 46a3 3 0 0 0 3 4h22a3 3 0 0 0 3-4L28 26V14'/%3E%3Cpath d='M78 70h14M80 70v30a5 5 0 0 0 10 0V70'/%3E%3C/svg%3E");background-size:120px 120px}
+/* ---------- 실험실 선반 (힉스필드 배경 1안 윗부분) ---------- */
+.shelf{margin:0 0 -6px;line-height:0}
+.shelf img{width:100%;height:auto;display:block}
+.home .top{padding-top:var(--space-2)}
+@media (max-height:760px){
+  .shelf{height:84px;overflow:hidden}
+  .shelf img{height:100%;object-fit:cover;object-position:center bottom}
+  .home .intro-h p{display:none}
+  .home .pick{padding-top:var(--space-3)}
+  .home .intro-h h1{margin-top:var(--space-2)}
+  .kr{width:80px}.kr-sway{width:72px;height:104px}
+  .home .game{padding-top:var(--space-2);padding-bottom:var(--space-2)}
+  .home .game .ic{width:66px;height:66px}.home .game .ic img{width:58px;height:58px}
+  .home .top{padding-top:0}
+}
