@@ -7,183 +7,187 @@ const KEY = 'dna-playground-v1';
 let store = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const pad = n => String(n).padStart(2, '0');
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
-const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
-const ICON = {
-  spot: `<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"><circle cx="17" cy="17" r="10"/><path d="M24.5 24.5 33 33"/><path d="M13 17h8M17 13v8" stroke-width="2.6"/></svg>`,
-  pattern: `<svg viewBox="0 0 40 40"><rect x="4" y="9" width="7" height="22" rx="2.5" fill="#FFD3D6"/><rect x="13" y="9" width="7" height="22" rx="2.5" fill="#FFE7B0"/><rect x="22" y="9" width="7" height="22" rx="2.5" fill="#fff"/><rect x="31" y="9" width="5" height="22" rx="2.5" fill="#BFE9D6"/></svg>`,
-  ox: `<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"><circle cx="12.5" cy="20" r="7.5"/><path d="M24 13l11 14M35 13 24 27"/></svg>`,
-};
-const GAMES = [
-  { id: 'spot', no: '01', title: '바이오헬스 틀린그림찾기', desc: '실험실 그림 2장에서 달라진 곳 7개를 찾아요', time: '약 5~7분', color: '#2F6BFF' },
-  { id: 'pattern', no: '02', title: '같은 DNA 패턴 찾기', desc: '색깔 배열이 같은 DNA를 보기에서 골라요', time: '약 4~5분', color: '#13A26B' },
-  { id: 'ox', no: '03', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 정답과 짧은 해설을 확인해요', time: '약 3~5분', color: '#F29F05' },
-];
+// 리소 잉크 (SVG 그림용 — style.css :root 와 같은 값)
+const C = { paper: '#F6F1E4', ink: '#1D2858', pink: '#FF4F8B', yellow: '#FFC93B', green: '#1FA77A', blue: '#2D63E2' };
+// 리소 인쇄처럼: 색 면은 살짝 어긋나게, 선은 제자리에
+const riso = (shapes, top = '', dx = 2.4, dy = 1.8) =>
+  `<g class="fills" transform="translate(${dx} ${dy})">${shapes}</g><g class="lines">${shapes}</g>${top}`;
 
-function topbar(title, right = '') {
-  return `<div class="topbar"><button class="back" data-go="#/" aria-label="처음 화면으로">‹</button><div class="tb-title">${title}</div>${right}</div>`;
+const GAMES = [
+  { id: 'spot', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개', time: '5–7분' },
+  { id: 'pattern', title: '같은 DNA 패턴 찾기', desc: '색깔 순서가 같은 DNA 고르기', time: '4–5분' },
+  { id: 'ox', title: 'DNA 상식 OX 퀴즈', desc: '5문제, 문제마다 짧은 해설', time: '3–5분' },
+];
+const recText = id => { const r = store[id]; if (!r) return ''; return id === 'spot' ? fmt(r.best) : `${r.best}/${r.total}`; };
+
+function bar(title, count = '') {
+  return `<nav class="bar"><button class="bk" data-go="#/">← 목록</button><span class="bar-t">${title}</span><span class="bar-c" id="bc">${count}</span></nav>`;
 }
 function sheet(html) {
   const d = document.createElement('div');
   d.className = 'overlay';
-  d.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  d.innerHTML = html;
   app.appendChild(d);
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
-const trophy = `<svg class="big" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38" fill="#FFF3D6"/><path d="M27 20h26v10c0 9-6 16-13 16s-13-7-13-16z" fill="#F7B500"/><path d="M27 24h-6c0 7 3 11 8 12M53 24h6c0 7-3 11-8 12" fill="none" stroke="#F7B500" stroke-width="3.5" stroke-linecap="round"/><rect x="36" y="45" width="8" height="9" fill="#E09A00"/><rect x="28" y="54" width="24" height="7" rx="2.5" fill="#0B1F4B"/></svg>`;
+function slip({ item, head, rows, note, again }) {
+  return sheet(`<div class="slip" role="dialog" aria-modal="true">
+    <div class="slip-top"><span>검사 결과지 · ${item}</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
+    <h3 class="slip-h">${head}</h3>
+    <ul class="slip-rows">${rows.map(([k, v]) => `<li><span>${k}</span><i></i><b>${v}</b></li>`).join('')}</ul>
+    <div class="slip-note"><span>소견</span><p>${note}</p></div>
+    <div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="#/">목록으로</button></div>
+  </div>`);
+}
+// 손으로 그린 동그라미
+function scribble(cx, cy, r, seed) {
+  let s = seed * 7919 + 13;
+  const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const start = rand() * Math.PI * 2, n = 16, pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = start + Math.PI * 2.18 * i / n, rr = r * (0.94 + rand() * 0.12) * (1 + 0.06 * i / n);
+    pts.push([cx + Math.cos(a) * rr * 1.1, cy + Math.sin(a) * rr * 0.9]);
+  }
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += ` Q${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  }
+  return d;
+}
 
-/* ================= 첫 화면 ================= */
+/* ================= 목록 ================= */
+function bathSVG() {
+  const shapes = `
+    <rect x="44" y="30" width="30" height="120" rx="15" fill="${C.paper}"/>
+    <path d="M46 98h26v37a13 13 0 0 1-26 0z" fill="${C.pink}" fill-opacity=".6"/>
+    <rect x="39" y="22" width="40" height="13" rx="2" fill="${C.yellow}"/>
+    <path d="M6 104q13-7 27 0t27 0t27 0t27 0V160a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="${C.blue}" fill-opacity=".42"/>`;
+  const top = `
+    <path d="M6 88V160a4 4 0 0 0 4 4h100a4 4 0 0 0 4-4V88" fill="none" stroke="${C.ink}" stroke-width="2.4"/>
+    <path d="M51 120q4-7 8 0t8 0" fill="none" stroke="${C.paper}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M53 130q3-5 6 0t6 0" fill="none" stroke="${C.paper}" stroke-width="2.4" stroke-linecap="round"/>
+    <path class="steam" d="M20 82q-6-8 0-15t0-15" fill="none" stroke="${C.ink}" stroke-width="2.4" stroke-linecap="round"/>
+    <path class="steam" d="M98 82q-6-8 0-15t0-15" fill="none" stroke="${C.ink}" stroke-width="2.4" stroke-linecap="round"/>`;
+  return `<svg class="bath" viewBox="0 0 120 170" aria-hidden="true">${riso(shapes, top)}</svg>`;
+}
 function home() {
   const doneN = GAMES.filter(g => store[g.id] && store[g.id].done).length;
   app.innerHTML = `
-  <header class="hero">
-    <span class="pill">바이오 정밀검진센터 · DNA 키링</span>
-    <h1>DNA 키링이<br>완성되는 동안</h1>
-    <p>키링은 따뜻한 물에서 약 20분!<br>기다리는 동안 DNA 게임 한 판 어때요?</p>
-    <svg class="helix" id="helix" viewBox="0 0 104 216" aria-hidden="true"></svg>
+  <header class="head">
+    <div class="slug"><span>바이오 정밀검진센터</span><span>DNA 키링 대기실</span></div>
+    <div class="head-main">
+      <h1 class="title">키링<br>기다리는<br><em>20분</em></h1>
+      ${bathSVG()}
+    </div>
+    <p class="lede">DNA 키링이 따뜻한 물속에서 완성되는 중이에요. 그동안 아래에서 하고 싶은 게임을 골라 보세요.</p>
   </header>
-  <main class="menu">
-    <div class="menu-head"><h2>게임을 골라요</h2>
-      <span class="prog">${GAMES.map(g => `<i class="${store[g.id] && store[g.id].done ? 'on' : ''}"></i>`).join('')}&nbsp;${doneN}/3 완료</span></div>
-    ${GAMES.map(card).join('')}
-    ${doneN === 3 ? `<button class="cert-btn" data-go="#/cert">3개 모두 완료! 인증서 보기</button>` : ''}
-  </main>
-  <p class="foot">2026 CO-SHOW 바이오헬스 혁신융합대학</p>`;
-  onCleanup(helix(document.getElementById('helix')));
-}
-function card(g) {
-  const r = store[g.id];
-  const rec = !r ? '' : g.id === 'spot' ? `최고 ${fmt(r.best)}` : `최고 ${r.best}/${r.total}`;
-  return `<button class="card" data-go="#/${g.id}">
-    <span class="ico" style="background:${g.color}">${ICON[g.id]}</span>
-    <span class="txt"><span class="no">GAME ${g.no}</span><span class="ttl">${g.title}</span><span class="dsc">${g.desc}</span>
-      <span class="meta"><span class="chip">${g.time}</span>${r ? `<span class="chip done">✓ 완료 · ${rec}</span>` : ''}</span></span>
-    <span class="go">›</span></button>`;
-}
-function helix(el) {
-  const cols = ['#EF4E5A', '#F29F05', '#13A26B', '#2F6BFF'];
-  const N = 11, H = 200, cx = 52, amp = 34;
-  let raf, t0 = performance.now();
-  const draw = now => {
-    const t = (now - t0) / 1000;
-    const ph = y => (y / H) * Math.PI * 2.4 + t * 1.1;
-    let s = '', p1 = '', p2 = '';
-    for (let j = 0; j < N; j++) {
-      const y = 12 + j * (H - 8) / (N - 1), a = Math.sin(ph(y)), d = Math.cos(ph(y));
-      const x1 = cx + amp * a, x2 = cx - amp * a, op = (0.55 + 0.45 * Math.abs(d)).toFixed(2);
-      s += `<line x1="${x1.toFixed(1)}" y1="${y.toFixed(1)}" x2="${cx}" y2="${y.toFixed(1)}" stroke="${cols[j % 4]}" stroke-width="5" stroke-linecap="round" opacity="${op}"/>`;
-      s += `<line x1="${cx}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${cols[[1, 0, 3, 2][j % 4]]}" stroke-width="5" stroke-linecap="round" opacity="${op}"/>`;
-    }
-    for (let i = 0; i <= 50; i++) {
-      const y = 6 + i * (H + 4) / 50, a = Math.sin(ph(y));
-      p1 += (i ? 'L' : 'M') + (cx + amp * a).toFixed(1) + ',' + y.toFixed(1);
-      p2 += (i ? 'L' : 'M') + (cx - amp * a).toFixed(1) + ',' + y.toFixed(1);
-    }
-    el.innerHTML = s + `<path d="${p1}" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".9"/><path d="${p2}" fill="none" stroke="#9DB8FF" stroke-width="4" stroke-linecap="round" opacity=".9"/>`;
-    if (!reduced) raf = requestAnimationFrame(draw);
-  };
-  draw(performance.now());
-  return () => cancelAnimationFrame(raf);
+  <ol class="menu">
+    ${GAMES.map((g, i) => `<li><button class="item${store[g.id] && store[g.id].done ? ' is-done' : ''}" data-go="#/${g.id}">
+      <span class="n">${i + 1}</span>
+      <span><span class="it-t">${g.title}</span><span class="it-d">${g.desc}</span></span>
+      ${store[g.id] && store[g.id].done ? `<span class="stamp" aria-label="완료"><b>완료</b><small>${recText(g.id)}</small></span>` : `<span class="time">${g.time}</span>`}
+    </button></li>`).join('')}
+  </ol>
+  ${doneN === 3 ? `<button class="done-all" data-go="#/cert"><span>3개 모두 끝! 판정서 받기</span><i>→</i></button>` : ''}
+  <footer class="foot"><span>완료 ${doneN} / 3</span><span>CO-SHOW 2026 · 바이오헬스 혁신융합대학</span></footer>`;
 }
 
 /* ================= 게임 1: 틀린그림찾기 ================= */
 const DIFFS = [
   { x: 88, y: 40, r: 20, name: '창밖의 해' },
-  { x: 171, y: 62, r: 34, name: '포스터 테두리 색' },
+  { x: 171, y: 62, r: 36, name: '포스터 테두리 색' },
   { x: 240, y: 44, r: 23, name: '시계 바늘' },
   { x: 335, y: 80, r: 21, name: '삼각 플라스크 색' },
   { x: 190, y: 152, r: 21, name: '시험관 1개' },
   { x: 266, y: 166, r: 27, name: '비커 물 높이' },
-  { x: 356, y: 134, r: 23, name: '화분의 꽃' },
+  { x: 356, y: 134, r: 24, name: '화분의 꽃' },
 ];
 function labSVG(B) {
-  const tubeCols = ['#FF6B6B', '#FFC93C', '#3CCB8B', '#4D8BFF'];
+  const tubeCols = [C.pink, C.yellow, C.green, C.blue];
   const tubes = [150, 170, 190, 210].map((x, i) => (B && i === 2) ? '' :
-    `<rect x="${x - 5.5}" y="126" width="11" height="56" rx="5.5" fill="#fff" stroke="#9FB4D6" stroke-width="1.6"/><rect x="${x - 3.6}" y="148" width="7.2" height="32" rx="3.6" fill="${tubeCols[i]}"/>`).join('');
-  // 포스터 속 이중나선
+    `<rect x="${x - 5.5}" y="124" width="11" height="58" rx="5.5" fill="${C.paper}"/><rect x="${x - 5.5}" y="146" width="11" height="36" rx="5.5" fill="${tubeCols[i]}"/>`).join('');
+  const S = `
+    <rect x="-5" y="180" width="410" height="12" fill="${C.yellow}" fill-opacity=".35"/>
+    <rect x="18" y="18" width="92" height="72" rx="2" fill="${C.paper}"/>
+    <rect x="25" y="25" width="78" height="58" fill="${C.blue}" fill-opacity=".3"/>
+    ${B ? '' : `<circle cx="88" cy="40" r="10" fill="${C.yellow}"/>`}
+    <path d="M33 74q0-8 9-7q3-8 12-5q8-2 9 6q7 0 6 6z" fill="${C.paper}"/>
+    <rect x="132" y="12" width="78" height="102" fill="${B ? C.pink : C.blue}"/>
+    <rect x="139" y="19" width="64" height="88" fill="${C.paper}"/>
+    <circle cx="240" cy="44" r="22" fill="${C.paper}"/>
+    <rect x="282" y="96" width="108" height="7" fill="${C.blue}"/>
+    <path d="M296 56h8v14.5a13 13 0 1 1-8 0z" fill="${C.paper}"/>
+    <path d="M287.2 84a12.8 12.8 0 0 0 25.6 0z" fill="${C.pink}"/>
+    <path d="M331 58h8v13l10 25h-28l10-25z" fill="${C.paper}"/>
+    <path d="M326.5 82h17l5.5 14h-28z" fill="${B ? C.yellow : C.green}"/>
+    <rect x="360" y="66" width="17" height="30" rx="2" fill="${C.yellow}" fill-opacity=".85"/>
+    <rect x="363" y="59" width="11" height="7" fill="${C.ink}"/>
+    <rect x="362" y="76" width="13" height="9" fill="${C.paper}"/>
+    <rect x="-5" y="192" width="410" height="11" fill="${C.blue}"/>
+    <rect x="-5" y="203" width="410" height="102" fill="${C.blue}" fill-opacity=".16"/>
+    <rect x="18" y="216" width="172" height="74" rx="2" fill="${C.paper}" fill-opacity=".55"/>
+    <rect x="210" y="216" width="172" height="74" rx="2" fill="${C.paper}" fill-opacity=".55"/>
+    <rect x="173" y="242" width="7" height="20" rx="2" fill="${C.ink}"/><rect x="220" y="242" width="7" height="20" rx="2" fill="${C.ink}"/>
+    <rect x="38" y="182" width="64" height="10" rx="2" fill="${C.ink}"/>
+    <path d="M82 182V150q0-22-17-29l4-9q23 9 23 38v32z" fill="${C.ink}"/>
+    <rect x="44" y="146" width="50" height="6" fill="${C.pink}"/>
+    <g transform="rotate(-22 60 122)"><rect x="52" y="104" width="17" height="34" fill="${C.blue}"/><rect x="50" y="95" width="21" height="10" fill="${C.ink}"/><rect x="56" y="137" width="9" height="9" fill="${C.paper}"/></g>
+    <circle cx="90" cy="163" r="6" fill="${C.yellow}"/>
+    <ellipse cx="122" cy="189" rx="15" ry="4.5" fill="${C.paper}"/>
+    ${tubes}
+    <rect x="136" y="162" width="90" height="8" fill="${C.yellow}"/>
+    <rect x="136" y="170" width="90" height="22" fill="${C.yellow}" fill-opacity=".75"/>
+    <rect x="247" y="${B ? 177 : 151}" width="38" height="${B ? 12 : 38}" fill="${C.blue}" fill-opacity=".45"/>
+    <path d="M244 134h44v52a6 6 0 0 1-6 6h-32a6 6 0 0 1-6-6z" fill="none"/>
+    <ellipse cx="345" cy="150" rx="11" ry="5" transform="rotate(-28 345 150)" fill="${C.green}"/>
+    <ellipse cx="367" cy="146" rx="11" ry="5" transform="rotate(28 367 146)" fill="${C.green}"/>
+    <ellipse cx="347" cy="134" rx="9" ry="4.5" transform="rotate(-35 347 134)" fill="${C.green}"/>
+    <ellipse cx="365" cy="132" rx="9" ry="4.5" transform="rotate(35 365 132)" fill="${C.green}"/>
+    ${B ? `<circle cx="356" cy="116" r="5.5" fill="${C.pink}"/><circle cx="363" cy="122" r="5.5" fill="${C.pink}"/><circle cx="349" cy="122" r="5.5" fill="${C.pink}"/><circle cx="356" cy="128" r="5.5" fill="${C.pink}"/>` : ''}
+    <path d="M340 168h32l-4 24h-24z" fill="${C.yellow}"/>
+    <rect x="336" y="162" width="40" height="8" fill="${C.yellow}"/>`;
+  // 위 레이어: 선과 글자 (어긋나지 않음)
   let hp1 = '', hp2 = '', rungs = '';
-  for (let i = 0; i <= 24; i++) { const y = 28 + i * 2.7, a = Math.sin(i / 24 * Math.PI * 2.2); hp1 += (i ? 'L' : 'M') + (171 + 17 * a).toFixed(1) + ',' + y.toFixed(1); hp2 += (i ? 'L' : 'M') + (171 - 17 * a).toFixed(1) + ',' + y.toFixed(1); }
-  ['#EF4E5A', '#F29F05', '#13A26B', '#2F6BFF', '#EF4E5A', '#13A26B', '#F29F05'].forEach((c, k) => { const i = 1.6 + k * 3.3, y = 28 + i * 2.7, a = Math.sin(i / 24 * Math.PI * 2.2); rungs += `<line x1="${(171 + 17 * a).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(171 - 17 * a).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="3.2" stroke-linecap="round"/>`; });
-  const hour = B ? 'M240 44 L228 44' : 'M240 44 L252 44';
-  return `<svg class="lab" viewBox="0 0 400 300" role="img" aria-label="실험실 그림${B ? ' 2' : ' 1'}">
-  <rect width="400" height="196" fill="#EAF2FF"/>
-  <rect y="186" width="400" height="10" fill="#DCE8FA"/>
-  <!-- 창문 -->
-  <rect x="18" y="18" width="92" height="72" rx="7" fill="#fff"/>
-  <rect x="24" y="24" width="80" height="60" rx="3" fill="#BFE3FF"/>
-  ${B ? '' : '<circle cx="88" cy="40" r="10" fill="#FFC93C"/>'}
-  <g fill="#fff"><ellipse cx="46" cy="68" rx="15" ry="7"/><ellipse cx="55" cy="63" rx="10" ry="7"/><ellipse cx="38" cy="65" rx="7" ry="5"/></g>
-  <path d="M64 24V84M24 54H104" stroke="#fff" stroke-width="5"/>
-  <!-- 포스터 -->
-  <rect x="134" y="14" width="74" height="98" rx="5" fill="#fff" stroke="${B ? '#FF8A3D' : '#2F6BFF'}" stroke-width="4.5"/>
-  ${rungs}
-  <path d="${hp1}" fill="none" stroke="#0B1F4B" stroke-width="3" stroke-linecap="round"/>
-  <path d="${hp2}" fill="none" stroke="#6F8FD8" stroke-width="3" stroke-linecap="round"/>
-  <text x="171" y="105" text-anchor="middle" font-size="11" font-weight="800" fill="#0B1F4B" font-family="sans-serif">DNA</text>
-  <!-- 시계 -->
-  <circle cx="240" cy="44" r="22" fill="#fff" stroke="#0B1F4B" stroke-width="3.5"/>
-  <g fill="#0B1F4B"><circle cx="240" cy="27" r="1.8"/><circle cx="257" cy="44" r="1.8"/><circle cx="240" cy="61" r="1.8"/><circle cx="223" cy="44" r="1.8"/></g>
-  <path d="M240 44 L240 29" stroke="#0B1F4B" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="${hour}" stroke="#EF4E5A" stroke-width="3.6" stroke-linecap="round"/>
-  <circle cx="240" cy="44" r="2.6" fill="#0B1F4B"/>
-  <!-- 선반 -->
-  <rect x="282" y="96" width="108" height="7" rx="2" fill="#8FA9D6"/>
-  <path d="M296 103v9h8M376 103v9h-8" stroke="#8FA9D6" stroke-width="3" fill="none"/>
-  <rect x="296" y="56" width="8" height="16" rx="2" fill="#fff" stroke="#9FB4D6" stroke-width="1.5"/>
-  <circle cx="300" cy="82" r="13" fill="#fff" stroke="#9FB4D6" stroke-width="1.5"/>
-  <path d="M288 84a12 12 0 0 0 24 0z" fill="#FF8FB8"/>
-  <path d="M331 58h8v13l10 25h-28l10-25z" fill="#fff" stroke="#9FB4D6" stroke-width="1.5" stroke-linejoin="round"/>
-  <path d="M326.5 82h17l5.5 13.5h-28z" fill="${B ? '#9B5CFF' : '#3CCB8B'}"/>
-  <rect x="360" y="66" width="17" height="30" rx="3" fill="#C98A4B"/><rect x="363" y="60" width="11" height="7" rx="1.5" fill="#0B1F4B"/>
-  <rect x="362" y="76" width="13" height="9" rx="1.5" fill="#FFF3DE"/>
-  <!-- 테이블 -->
-  <rect y="192" width="400" height="11" fill="#7FA3D8"/>
-  <rect y="203" width="400" height="97" fill="#D7E4F6"/>
-  <rect x="18" y="216" width="172" height="74" rx="6" fill="#E6EEFA" stroke="#B8CBE8" stroke-width="2"/>
-  <rect x="210" y="216" width="172" height="74" rx="6" fill="#E6EEFA" stroke="#B8CBE8" stroke-width="2"/>
-  <rect x="174" y="242" width="6" height="20" rx="3" fill="#8FA9D6"/><rect x="220" y="242" width="6" height="20" rx="3" fill="#8FA9D6"/>
-  <!-- 현미경 -->
-  <rect x="38" y="182" width="64" height="10" rx="4" fill="#0B1F4B"/>
-  <path d="M88 182V148q0-26-22-34" stroke="#0B1F4B" stroke-width="10" fill="none" stroke-linecap="round"/>
-  <rect x="44" y="148" width="48" height="6" rx="2" fill="#2F6BFF"/>
-  <g transform="rotate(-22 60 122)"><rect x="52" y="104" width="17" height="34" rx="4" fill="#2F6BFF"/><rect x="50" y="96" width="21" height="10" rx="3" fill="#0B1F4B"/><rect x="56" y="137" width="9" height="9" rx="1.5" fill="#8FA9D6"/></g>
-  <circle cx="88" cy="160" r="6" fill="#FFC93C"/>
-  <ellipse cx="122" cy="189" rx="15" ry="4.5" fill="#EAF7FF" stroke="#9FB4D6" stroke-width="1.5"/>
-  <g fill="#FF8FB8"><circle cx="116" cy="188.5" r="1.6"/><circle cx="124" cy="190" r="1.6"/><circle cx="128" cy="188" r="1.3"/></g>
-  <!-- 시험관 꽂이 -->
-  ${tubes}
-  <rect x="138" y="162" width="86" height="7" rx="2" fill="#E89F3C"/>
-  <rect x="138" y="170" width="86" height="22" rx="4" fill="#F4B860"/>
-  <!-- 비커 -->
-  <rect x="247" y="${B ? 176 : 150}" width="38" height="${B ? 13 : 39}" rx="3" fill="#7FD3FF"/>
-  <path d="M244 134h44v52a6 6 0 0 1-6 6h-32a6 6 0 0 1-6-6z" fill="rgba(255,255,255,.35)" stroke="#9FB4D6" stroke-width="2"/>
-  <path d="M249 150h7M249 162h7M249 174h7" stroke="#9FB4D6" stroke-width="1.6"/>
-  <!-- 화분 -->
-  <path d="M356 164V128" stroke="#2E9E62" stroke-width="3"/>
-  <g fill="#3CCB8B"><ellipse cx="345" cy="150" rx="11" ry="5" transform="rotate(-28 345 150)"/><ellipse cx="367" cy="146" rx="11" ry="5" transform="rotate(28 367 146)"/><ellipse cx="347" cy="134" rx="9" ry="4.5" transform="rotate(-35 347 134)"/><ellipse cx="365" cy="132" rx="9" ry="4.5" transform="rotate(35 365 132)"/></g>
-  ${B ? '<g fill="#FF7EB6"><circle cx="356" cy="117" r="5.5"/><circle cx="363" cy="123" r="5.5"/><circle cx="349" cy="123" r="5.5"/><circle cx="356" cy="129" r="5.5"/></g><circle cx="356" cy="123" r="4" fill="#FFC93C"/>' : ''}
-  <path d="M340 168h32l-4 24h-24z" fill="#E07B53"/>
-  <rect x="336" y="162" width="40" height="8" rx="2.5" fill="#C9653F"/>
-  <g class="marks"></g>
-</svg>`;
+  for (let i = 0; i <= 24; i++) { const y = 28 + i * 2.6, a = Math.sin(i / 24 * Math.PI * 2.2); hp1 += (i ? 'L' : 'M') + (171 + 16 * a).toFixed(1) + ',' + y.toFixed(1); hp2 += (i ? 'L' : 'M') + (171 - 16 * a).toFixed(1) + ',' + y.toFixed(1); }
+  [C.pink, C.yellow, C.green, C.blue, C.pink, C.green, C.yellow].forEach((c, k) => { const i = 1.6 + k * 3.3, y = 28 + i * 2.6, a = Math.sin(i / 24 * Math.PI * 2.2); rungs += `<line x1="${(171 + 16 * a).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(171 - 16 * a).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="3.4" stroke-linecap="round"/>`; });
+  const top = `
+    <path d="M64 25V83M25 54H103" stroke="${C.ink}" stroke-width="2"/>
+    ${rungs}
+    <path d="${hp1}" fill="none" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="${hp2}" fill="none" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/>
+    <text x="171" y="103" text-anchor="middle" font-size="10.5" font-weight="700" fill="${C.ink}" font-family="IBM Plex Mono,monospace">DNA</text>
+    <g fill="${C.ink}"><circle cx="240" cy="27.5" r="1.8"/><circle cx="256.5" cy="44" r="1.8"/><circle cx="240" cy="60.5" r="1.8"/><circle cx="223.5" cy="44" r="1.8"/></g>
+    <path d="M240 44V30" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="${B ? 'M240 44H228' : 'M240 44H252'}" stroke="${C.pink}" stroke-width="3.8" stroke-linecap="round"/>
+    <circle cx="240" cy="44" r="2.6" fill="${C.ink}"/>
+    <path d="M296 103v9h8M376 103v9h-8" stroke="${C.ink}" stroke-width="2" fill="none"/>
+    <path d="M249 150h7M249 162h7M249 174h7" stroke="${C.ink}" stroke-width="1.6"/>
+    <g fill="${C.pink}"><circle cx="116" cy="188.5" r="1.7"/><circle cx="124" cy="190" r="1.7"/><circle cx="128" cy="188" r="1.4"/></g>
+    <path d="M356 162V127" stroke="${C.ink}" stroke-width="2.2"/>
+    ${B ? `<circle cx="356" cy="122" r="3.6" fill="${C.yellow}" stroke="${C.ink}" stroke-width="1.6"/>` : ''}`;
+  return `<svg class="lab" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
+    <rect width="400" height="300" fill="${C.paper}"/>${riso(S, top)}<g class="marks"></g></svg>`;
 }
 function spot() {
   const found = new Set();
   let hints = 0, done = false;
   const t0 = performance.now();
-  app.innerHTML = topbar('틀린그림찾기', `<span class="counter">찾은 곳 <b id="cnt">0</b>/7</span>`) + `
-  <main class="game">
-    <div class="guide"><span>두 그림에서 <b>다른 곳</b>을 눌러요</span><span class="timer" id="tm">0:00</span></div>
-    <div class="lab-wrap"><span class="lab-tag">그림 1</span>${labSVG(false)}</div>
-    <div class="lab-wrap"><span class="lab-tag">그림 2</span>${labSVG(true)}</div>
-    <div class="dots" id="dots">${DIFFS.map(() => '<i></i>').join('')}</div>
-    <button class="btn ghost" id="hint">잘 안 보이면? 힌트 보기</button>
+  app.innerHTML = bar('틀린그림찾기', `<em>0</em>/7`) + `
+  <main class="g">
+    <p class="ins"><span>두 그림에서 <b>다른 곳</b>을 눌러요</span><span class="clock" id="tm">0:00</span></p>
+    <figure class="pic"><figcaption>그림 A</figcaption>${labSVG(false)}</figure>
+    <figure class="pic"><figcaption>그림 B</figcaption>${labSVG(true)}</figure>
+    <div class="ticks" id="ticks">${DIFFS.map(() => '<i></i>').join('')}<span id="tk">0 / 7</span></div>
+    <button class="btn line" id="hint">잘 모르겠어요 · 힌트</button>
   </main>`;
   const svgs = [...app.querySelectorAll('svg.lab')];
   const tm = document.getElementById('tm');
@@ -193,7 +197,6 @@ function spot() {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.innerHTML = html; svg.querySelector('.marks').appendChild(g);
     if (ms) setTimeout(() => g.remove(), ms);
-    return g;
   };
   svgs.forEach(svg => svg.addEventListener('click', e => {
     if (done) return;
@@ -201,13 +204,14 @@ function spot() {
     const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 300;
     let hit = -1, best = 1e9;
     DIFFS.forEach((d, i) => { const dist = Math.hypot(d.x - x, d.y - y); if (dist <= d.r + 8 && dist < best) { best = dist; hit = i; } });
-    if (hit < 0) { add(svg, `<g class="miss"><path d="M${x - 9} ${y - 9}L${x + 9} ${y + 9}M${x + 9} ${y - 9}L${x - 9} ${y + 9}"/></g>`, 700); buzz(12); return; }
+    if (hit < 0) { add(svg, `<g class="miss"><path d="M${x - 8} ${y - 8}L${x + 8} ${y + 8}M${x + 8} ${y - 8}L${x - 8} ${y + 8}"/></g>`, 700); buzz(12); return; }
     if (found.has(hit)) return;
     found.add(hit); buzz(30);
     const d = DIFFS[hit];
-    svgs.forEach(s => { s.querySelectorAll(`.hint-${hit}`).forEach(n => n.remove()); add(s, `<circle class="found" cx="${d.x}" cy="${d.y}" r="${d.r}"/>`); });
-    document.getElementById('cnt').textContent = found.size;
-    document.querySelectorAll('#dots i').forEach((el, i) => el.classList.toggle('on', i < found.size));
+    svgs.forEach((s, k) => { s.querySelectorAll(`.hint-${hit}`).forEach(n => n.parentNode.remove()); add(s, `<path class="found" pathLength="1" d="${scribble(d.x, d.y, d.r, hit * 3 + k + 1)}"/>`); });
+    document.getElementById('bc').innerHTML = `<em>${found.size}</em>/7`;
+    document.getElementById('tk').textContent = `${found.size} / 7`;
+    document.querySelectorAll('#ticks i').forEach((el, i) => el.classList.toggle('on', i < found.size));
     if (found.size === DIFFS.length) finish();
   }));
   document.getElementById('hint').addEventListener('click', () => {
@@ -215,22 +219,21 @@ function spot() {
     if (i < 0 || done) return;
     hints++;
     const d = DIFFS[i];
-    svgs.forEach(s => add(s, `<circle class="hintc hint-${i}" cx="${d.x}" cy="${d.y}" r="${d.r + 4}"/>`, 2600));
-    svgs[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    svgs.forEach(s => add(s, `<circle class="hintc hint-${i}" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`, 2600));
+    svgs[0].closest('.pic').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   function finish() {
     done = true;
     const sec = (performance.now() - t0) / 1000;
     tm.textContent = fmt(sec);
-    const best = store.spot ? Math.min(store.spot.best, sec) : sec;
-    const isBest = !store.spot || sec <= store.spot.best;
+    const prev = store.spot, best = prev ? Math.min(prev.best, sec) : sec;
     store.spot = { done: true, best }; save();
-    setTimeout(() => sheet(`${trophy}
-      <h3>7곳을 모두 찾았어요!</h3>
-      <p class="sub">${isBest ? '내 최고 기록이에요' : `내 최고 기록은 ${fmt(best)}`}</p>
-      <div class="stats"><div><span>걸린 시간</span><b>${fmt(sec)}</b></div><div><span>힌트</span><b>${hints}번</b></div></div>
-      <p class="fact"><b>알고 있나요?</b>사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.</p>
-      <div class="row"><button class="btn ghost" data-go="#/spot">다시 하기</button><button class="btn" data-go="#/">다른 게임</button></div>`), 750);
+    setTimeout(() => slip({
+      item: '틀린그림찾기', again: '#/spot',
+      head: `7곳 <em>다</em> 찾았어요!`,
+      rows: [['찾은 곳', '7 / 7'], ['걸린 시간', fmt(sec)], ['힌트', `${hints}회`], ['내 최고 기록', fmt(best)]],
+      note: '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
+    }), 700);
   }
 }
 
@@ -238,7 +241,7 @@ function spot() {
 const BASES = ['A', 'T', 'G', 'C'];
 const PAIR = { A: 'T', T: 'A', G: 'C', C: 'G' };
 const comp = s => [...s].map(c => PAIR[c]).join('');
-const strand = s => `<div class="strand">${[...s].map(c => c === '?' ? `<span class="b b-q">?</span>` : `<span class="b b-${c}">${c}</span>`).join('')}</div>`;
+const strand = s => `<div class="strand">${[...s].map(c => c === '?' ? `<span class="t t-q">?</span>` : `<span class="t t-${c}">${c}</span>`).join('')}</div>`;
 function randSeq(n) {
   let s = '';
   while (s.length < n) { const c = rnd(BASES); if (s.length >= 2 && s[s.length - 1] === c && s[s.length - 2] === c) continue; s += c; }
@@ -262,7 +265,7 @@ function pattern() {
                   { t: 'pair', n: 4 }, { t: 'pair', n: 5 }, { t: 'pair', n: 6 }];
   let r = 0, score = 0, introShown = false;
   const t0 = performance.now();
-  app.innerHTML = topbar('같은 DNA 패턴 찾기', `<span class="counter"><b id="rn">1</b>/${ROUNDS.length}</span>`) + `<main class="game" id="pg"></main>`;
+  app.innerHTML = bar('같은 DNA 패턴 찾기', `<em>01</em>/${pad(ROUNDS.length)}`) + `<main class="g" id="pg"></main>`;
   const pg = document.getElementById('pg');
   const next = () => {
     window.scrollTo(0, 0);
@@ -272,38 +275,38 @@ function pattern() {
   };
   function pairIntro() {
     pg.innerHTML = `<div class="intro">
-      <span class="tag pair">새로운 문제</span>
-      <h2>이번엔 짝꿍 찾기!</h2>
-      <p>DNA는 두 줄이 사다리처럼 짝을 지어요.<br>짝꿍은 정해져 있어요.</p>
-      <div class="pairs"><span><i class="b b-A">A</i>↔<i class="b b-T">T</i></span><span><i class="b b-G">G</i>↔<i class="b b-C">C</i></span></div>
-      <div class="ladder">${strand('GATC')}<div class="rungs"><i></i><i></i><i></i><i></i></div>${strand('CTAG')}</div>
+      <p class="kind">6번 문제부터 바뀌어요</p>
+      <h2 class="big">이번엔<br>짝꿍 찾기</h2>
+      <p>DNA는 두 줄이 사다리처럼 마주 보고 붙어 있어요. 마주 보는 글자는 늘 정해진 짝끼리 만나요.</p>
+      <div class="pairs"><span><i class="t t-A">A</i>–<i class="t t-T">T</i></span><span><i class="t t-G">G</i>–<i class="t t-C">C</i></span></div>
+      <div class="sample"><span class="sample-l">예시</span>${strand('GATC')}<div class="rungs"><i></i><i></i><i></i><i></i></div>${strand('CTAG')}</div>
       <button class="btn" id="go">짝꿍 찾기 시작</button></div>`;
     document.getElementById('go').onclick = next;
   }
   function play(R) {
-    document.getElementById('rn').textContent = r + 1;
+    document.getElementById('bc').innerHTML = `<em>${pad(r + 1)}</em>/${pad(ROUNDS.length)}`;
     const target = randSeq(R.n), answer = R.t === 'same' ? target : comp(target);
     const opts = makeOptions(answer, R.t === 'pair' ? [target] : []);
     let locked = false;
     pg.innerHTML = `
-      <div class="q-head"><span class="tag ${R.t}">${R.t === 'same' ? '똑같은 패턴' : '짝꿍 패턴'}</span>
-        <h2>${R.t === 'same' ? '위 DNA와 <b>똑같은</b> 것을 골라요' : '위 DNA와 <b>짝이 맞는</b> 줄을 골라요'}</h2>
-        ${R.t === 'pair' ? '<span class="rule"><span>A ↔ T</span><span>G ↔ C</span></span>' : ''}</div>
-      <div class="target">${strand(target)}${R.t === 'pair' ? `<div class="rungs">${'<i></i>'.repeat(R.n)}</div>${strand('?'.repeat(R.n))}` : ''}</div>
-      <div class="opts">${opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="opt-no">${i + 1}</span>${strand(o)}</button>`).join('')}</div>
-      <div class="feedback" id="fb"></div>`;
-    pg.querySelectorAll('.opt').forEach(btn => btn.addEventListener('click', () => {
+      <p class="kind">${R.t === 'same' ? '똑같은 줄 찾기' : '짝꿍 줄 찾기'}</p>
+      <h2 class="q">${R.t === 'same' ? '견본과 <mark>똑같은</mark> DNA를 골라요' : '견본과 <mark>짝이 맞는</mark> 줄을 골라요'}</h2>
+      ${R.t === 'pair' ? '<span class="pair-rule"><span>A–T</span><span>G–C</span></span>' : ''}
+      <div class="sample"><span class="sample-l">견본</span>${strand(target)}${R.t === 'pair' ? `<div class="rungs">${'<i></i>'.repeat(R.n)}</div>${strand('?'.repeat(R.n))}` : ''}</div>
+      <ol class="choices">${opts.map((o, i) => `<li><button class="ch" data-i="${i}"><span class="cn">${i + 1}</span>${strand(o)}</button></li>`).join('')}</ol>
+      <div id="fb"></div>`;
+    pg.querySelectorAll('.ch').forEach(btn => btn.addEventListener('click', () => {
       if (locked) return; locked = true;
       const pick = opts[+btn.dataset.i], ok = pick === answer;
-      pg.querySelectorAll('.opt').forEach((b, i) => b.classList.add(opts[i] === answer ? 'right' : b === btn ? 'wrong' : 'dim'));
+      pg.querySelectorAll('.ch').forEach((b, i) => b.classList.add(opts[i] === answer ? 'right' : b === btn ? 'wrong' : 'dim'));
       if (ok) { score++; buzz(30); } else buzz([20, 60, 20]);
-      if (R.t === 'pair') { const rows = pg.querySelectorAll('.target .strand'); rows[1].outerHTML = strand(answer); }
+      if (R.t === 'pair') pg.querySelectorAll('.sample .strand')[1].outerHTML = strand(answer);
       let msg;
-      if (ok) msg = R.t === 'same' ? '정답! 색깔과 순서가 똑같아요.' : '정답! A는 T와, G는 C와 짝이에요.';
-      else if (R.t === 'pair' && pick === target) msg = '아쉬워요! 그건 위와 똑같은 줄이에요. 짝꿍은 A↔T, G↔C로 바꿔야 해요.';
-      else { const k = [...pick].findIndex((c, j) => c !== answer[j]); msg = `아쉬워요! 앞에서 ${k + 1}번째 칸이 달라요.`; }
+      if (ok) msg = R.t === 'same' ? '정답! 색깔도 순서도 똑같아요.' : '정답! A는 T와, G는 C와 짝이에요.';
+      else if (R.t === 'pair' && pick === target) msg = '아쉬워요. 그건 견본과 똑같은 줄이에요. 짝꿍은 A–T, G–C로 바꿔야 해요.';
+      else { const k = [...pick].findIndex((c, j) => c !== answer[j]); msg = `아쉬워요. 앞에서 ${k + 1}번째 칸이 달라요.`; }
       const fb = document.getElementById('fb');
-      fb.innerHTML = `<p class="msg ${ok ? 'ok' : 'no'}">${msg}</p><button class="btn" id="nx">${r + 1 < ROUNDS.length ? '다음 문제' : '결과 보기'}</button>`;
+      fb.innerHTML = `<p class="say ${ok ? 'ok' : 'no'}">${msg}</p><button class="btn" id="nx">${r + 1 < ROUNDS.length ? '다음 문제' : '결과 보기'}</button>`;
       document.getElementById('nx').onclick = () => { r++; next(); };
       setTimeout(() => fb.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
     }));
@@ -312,12 +315,12 @@ function pattern() {
     const sec = (performance.now() - t0) / 1000, total = ROUNDS.length;
     const best = store.pattern ? Math.max(store.pattern.best, score) : score;
     store.pattern = { done: true, best, total }; save();
-    sheet(`${trophy}
-      <h3>${total}문제 중 ${score}개 정답!</h3>
-      <p class="sub">${score === total ? '완벽해요! DNA 읽기 선수네요' : score >= 6 ? '훌륭해요! 눈이 아주 좋아요' : '다시 하면 더 잘할 수 있어요'}</p>
-      <div class="stats"><div><span>정답</span><b>${score}/${total}</b></div><div><span>걸린 시간</span><b>${fmt(sec)}</b></div></div>
-      <p class="fact"><b>알고 있나요?</b>DNA의 두 줄은 항상 A-T, G-C로 짝을 지어요. 그래서 세포가 둘로 나뉠 때 한 줄만 보고도 나머지 한 줄을 똑같이 만들어 낼 수 있어요.</p>
-      <div class="row"><button class="btn ghost" data-go="#/pattern">다시 하기</button><button class="btn" data-go="#/">다른 게임</button></div>`);
+    slip({
+      item: '같은 DNA 패턴 찾기', again: '#/pattern',
+      head: score === total ? `<em>${total}문제</em> 모두 정답!` : `${total}문제 중 <em>${score}개</em> 정답`,
+      rows: [['똑같은 줄', '5문제'], ['짝꿍 줄', '3문제'], ['걸린 시간', fmt(sec)], ['내 최고 점수', `${best} / ${total}`]],
+      note: 'DNA의 두 줄은 항상 A–T, G–C로 짝을 지어요. 그래서 세포가 둘로 나뉠 때 한 줄만 보고도 나머지 한 줄을 똑같이 만들어 낼 수 있어요.',
+    });
   }
   next();
 }
@@ -338,28 +341,29 @@ const POOL = [
   { q: '다 자란 사람의 적혈구에는 DNA가 없다.', a: true, e: '적혈구는 산소를 더 많이 실어 나르려고 자라면서 핵을 버려요. 그래서 DNA가 없어요.' },
   { q: 'DNA는 \'디옥시리보핵산\'의 줄임말이다.', a: true, e: '영어 DeoxyriboNucleic Acid의 앞 글자를 따서 DNA라고 불러요.' },
 ];
-const O_SVG = `<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="27" fill="none" stroke="#2F6BFF" stroke-width="11"/></svg>`;
-const X_SVG = `<svg viewBox="0 0 80 80"><path d="M17 17 63 63M63 17 17 63" stroke="#EF4E5A" stroke-width="12" stroke-linecap="round"/></svg>`;
+const O_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="42.5" cy="41.8" r="26" fill="none" stroke="${C.blue}" stroke-width="12" opacity=".9"/><circle cx="40" cy="40" r="26" fill="none" stroke="${C.ink}" stroke-width="3"/></svg>`;
+const X_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M20.5 19.8 64.5 63.8M64.5 19.8 20.5 63.8" stroke="${C.pink}" stroke-width="13" stroke-linecap="square" opacity=".9"/><path d="M18 18 62 62M62 18 18 62" stroke="${C.ink}" stroke-width="3"/></svg>`;
 function ox() {
   const qs = shuffle(POOL).slice(0, 5);
   let i = 0, score = 0;
-  app.innerHTML = topbar('DNA 상식 OX 퀴즈', `<span class="counter"><b id="qn">1</b>/${qs.length}</span>`) + `<main class="game" id="og"></main>`;
+  app.innerHTML = bar('DNA 상식 OX 퀴즈', `<em>Q1</em>/5`) + `<main class="g" id="og"></main>`;
   const og = document.getElementById('og');
   function show() {
     window.scrollTo(0, 0);
     const q = qs[i];
     let answered = false;
-    document.getElementById('qn').textContent = i + 1;
-    og.innerHTML = `<div class="qcard"><span class="qno">Q${i + 1}.</span><p class="qtext">${q.q}</p></div>
-      <div class="ox-btns"><button class="oxb" data-v="1" aria-label="O, 맞아요">${O_SVG}<span>맞아요</span></button><button class="oxb" data-v="0" aria-label="X, 아니에요">${X_SVG}<span>아니에요</span></button></div>
-      <div class="feedback" id="fb"></div>`;
-    og.querySelectorAll('.oxb').forEach(btn => btn.addEventListener('click', () => {
+    document.getElementById('bc').innerHTML = `<em>Q${i + 1}</em>/${qs.length}`;
+    og.innerHTML = `<div class="ox-q"><p class="kind">문제 ${i + 1}</p><h2 class="q">${q.q}</h2></div>
+      <div class="oxrow"><button class="oxk" data-v="1" aria-label="O, 맞아요">${O_SVG}<span>맞아요</span></button><button class="oxk" data-v="0" aria-label="X, 아니에요">${X_SVG}<span>아니에요</span></button></div>
+      <div id="fb"></div>`;
+    og.querySelectorAll('.oxk').forEach(btn => btn.addEventListener('click', () => {
       if (answered) return; answered = true;
       const v = btn.dataset.v === '1', ok = v === q.a;
-      og.querySelectorAll('.oxb').forEach(b => b.classList.add((b.dataset.v === '1') === q.a ? 'right' : b === btn ? 'wrong' : 'dim'));
+      og.querySelectorAll('.oxk').forEach(b => b.classList.add((b.dataset.v === '1') === q.a ? 'right' : b === btn ? 'wrong' : 'dim'));
       if (ok) { score++; buzz(30); } else buzz([20, 60, 20]);
       const fb = document.getElementById('fb');
-      fb.innerHTML = `<div class="exp ${ok ? 'ok' : 'no'}"><span class="res">${ok ? '정답!' : '아쉬워요!'} 정답은 ${q.a ? 'O' : 'X'}</span><p>${q.e}</p></div>
+      fb.innerHTML = `<div class="explain"><p class="res ${ok ? 'ok' : 'no'}">${ok ? '정답!' : '아쉬워요'} 답은 ${q.a ? 'O' : 'X'}</p>
+        <p><span class="lbl">해설</span>${q.e}</p></div>
         <button class="btn" id="nx">${i + 1 < qs.length ? '다음 문제' : '결과 보기'}</button>`;
       document.getElementById('nx').onclick = () => { i++; i < qs.length ? show() : finish(); };
       setTimeout(() => fb.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
@@ -368,40 +372,38 @@ function ox() {
   function finish() {
     const total = qs.length, best = store.ox ? Math.max(store.ox.best, score) : score;
     store.ox = { done: true, best, total }; save();
-    sheet(`${trophy}
-      <h3>${total}문제 중 ${score}개 정답!</h3>
-      <p class="sub">${score === total ? '만점! DNA 박사님이에요' : score >= 3 ? '잘했어요! DNA와 꽤 친해졌어요' : '새로 알게 된 게 많아졌어요'}</p>
-      <div class="stats"><div><span>정답</span><b>${score}/${total}</b></div><div><span>최고 점수</span><b>${best}/${total}</b></div></div>
-      <p class="fact"><b>한 번 더 해 볼까요?</b>문제는 매번 섞여서 나와요. 다시 하면 새로운 문제를 만날 수 있어요.</p>
-      <div class="row"><button class="btn ghost" data-go="#/ox">다시 하기</button><button class="btn" data-go="#/">다른 게임</button></div>`);
+    slip({
+      item: 'DNA 상식 OX 퀴즈', again: '#/ox',
+      head: score === total ? `<em>만점!</em> ${total}문제 다 맞혔어요` : `${total}문제 중 <em>${score}개</em> 정답`,
+      rows: [['맞힌 문제', `${score} / ${total}`], ['내 최고 점수', `${best} / ${total}`], ['문제 수', `${POOL.length}개 중 5개`]],
+      note: '문제는 할 때마다 섞여서 나와요. 다시 하면 처음 보는 문제를 만날 수 있어요.',
+    });
   }
   show();
 }
 
-/* ================= 인증서 ================= */
-function badgeHelix() {
-  const cx = 60, y0 = 30, h = 60, amp = 15, f = y => Math.sin((y - y0) / h * Math.PI * 2 + Math.PI / 2 * 0);
-  let p1 = '', p2 = '', rungs = '';
-  for (let i = 0; i <= 30; i++) { const y = y0 + i * h / 30, a = f(y); p1 += (i ? 'L' : 'M') + (cx + amp * a).toFixed(1) + ',' + y.toFixed(1); p2 += (i ? 'L' : 'M') + (cx - amp * a).toFixed(1) + ',' + y.toFixed(1); }
-  [0.12, 0.38, 0.62, 0.88].forEach((k, j) => { const y = y0 + k * h, a = f(y); rungs += `<line x1="${(cx + amp * a).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(cx - amp * a).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${['#EF4E5A', '#2F6BFF', '#13A26B', '#0B1F4B'][j]}" stroke-width="4" stroke-linecap="round"/>`; });
-  return rungs + `<path d="${p1}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="${p2}" fill="none" stroke="#0B1F4B" stroke-width="5" stroke-linecap="round"/>`;
-}
+/* ================= 판정서 ================= */
 function cert() {
   if (!GAMES.every(g => store[g.id] && store[g.id].done)) { location.hash = '#/'; return; }
   const d = new Date();
-  app.innerHTML = `<main class="cert"><div class="cert-card">
-    <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#FFF3D6"/><circle cx="60" cy="60" r="44" fill="#F7B500"/><circle cx="60" cy="60" r="44" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 5"/>
-      ${badgeHelix()}</svg>
-    <span class="cert-sub">2026 CO-SHOW 바이오헬스</span>
-    <h1>DNA 탐험가</h1>
-    <p>DNA 게임 3개를 모두 마쳤어요!</p>
-    <ul class="cert-rec">
-      <li><span>틀린그림찾기</span><b>${fmt(store.spot.best)}</b></li>
-      <li><span>같은 DNA 패턴 찾기</span><b>${store.pattern.best}/${store.pattern.total}</b></li>
-      <li><span>DNA 상식 OX 퀴즈</span><b>${store.ox.best}/${store.ox.total}</b></li>
+  app.innerHTML = `<main class="cert"><div class="cert-paper">
+    <div class="slug"><span>판정서</span><span>바이오 정밀검진센터</span></div>
+    <h1>DNA<br>탐험가</h1>
+    <p>DNA 게임 3개를 모두 마쳤으므로<br>DNA 탐험가로 판정합니다.</p>
+    <ul class="slip-rows">
+      <li><span>틀린그림찾기</span><i></i><b>${fmt(store.spot.best)}</b></li>
+      <li><span>같은 DNA 패턴 찾기</span><i></i><b>${store.pattern.best}/${store.pattern.total}</b></li>
+      <li><span>DNA 상식 OX 퀴즈</span><i></i><b>${store.ox.best}/${store.ox.total}</b></li>
     </ul>
-    <span class="cert-date">${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.</span>
-  </div><button class="btn" data-go="#/">처음 화면으로</button></main>`;
+    <span class="cert-date">${d.getFullYear()}. ${pad(d.getMonth() + 1)}. ${pad(d.getDate())}.  CO-SHOW 2026</span>
+    <svg class="seal" viewBox="0 0 120 120" aria-hidden="true">
+      <defs><path id="sealc" d="M60 60m-41 0a41 41 0 1 1 82 0a41 41 0 1 1-82 0"/></defs>
+      <circle cx="60" cy="60" r="55" fill="none" stroke="${C.pink}" stroke-width="4"/>
+      <circle cx="60" cy="60" r="30" fill="none" stroke="${C.pink}" stroke-width="2"/>
+      <text font-size="10.5" font-weight="700" fill="${C.pink}" letter-spacing="1.5" font-family="IBM Plex Sans KR,sans-serif"><textPath href="#sealc">바이오 정밀검진센터 · DNA 키링 대기실 ·</textPath></text>
+      <text x="60" y="67" text-anchor="middle" font-size="20" fill="${C.pink}" font-family="Gasoek One,sans-serif">인증</text>
+    </svg>
+  </div><button class="btn" data-go="#/">목록으로</button></main>`;
 }
 
 /* ================= 화면 전환 ================= */
