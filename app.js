@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=20';
+const V = '?v=21';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -41,14 +41,14 @@ function sheet(html) {
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
-function report({ id, code, icon, head, rows, note, again }) {
+function report({ id, code, icon, head, sub, rows, note, noteTitle = '결과 해석', again }) {
   const i = GAMES.findIndex(g => g.id === id), nx = GAMES[i + 1];
   return sheet(`<div class="slip" role="dialog" aria-modal="true">
     <img class="slip-art" src="img/${icon}.png${V}" alt="">
     <div class="slip-top"><span>분석 리포트 · ${code}</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
-    <h3 class="slip-h">${head}</h3>
+    <h3 class="slip-h">${head}</h3>${sub ? `<p class="slip-sub">${sub}</p>` : ''}
     <ul class="slip-rows">${rows.map(([k, v]) => `<li><span>${k}</span><i></i><b>${v}</b></li>`).join('')}</ul>
-    <div class="slip-note"><span>결과 해석</span><p>${note}</p></div>
+    <div class="slip-note"><span>${noteTitle}</span>${note.split('|').map(t => `<p>${t}</p>`).join('')}</div>
     <div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="${nx ? '#/' + nx.id : '#/done'}">${nx ? '다음 실험 →' : '최종 결과 보기'}</button></div>
   </div>`);
 }
@@ -238,7 +238,9 @@ function playSpot() {
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
       head: all ? `다른 곳 7개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
       rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(SPOT_TIME)], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
-      note: (all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요. ') + '사람과 사람의 DNA는 99.9%가 같아요. 나머지 0.1%의 작은 차이가 생김새와 체질을 다르게 만들어요. 과학자들도 틀린그림찾기처럼 이 작은 차이를 찾아내요.',
+      sub: all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요.',
+      noteTitle: '게임 속 DNA 이야기',
+      note: '비슷해 보이는 두 그림에서 작은 차이를 찾아보았나요?|과학자들도 DNA를 이루는 글자들의 순서인 ‘염기서열’을 비교해 차이를 찾아요. 사람들의 DNA는 대부분 비슷하지만 조금씩 다른 부분이 있고, 그중 일부는 눈동자 색 같은 우리 몸의 특징에 영향을 줄 수 있어요.',
     }), all ? 700 : 1600);
   }
 }

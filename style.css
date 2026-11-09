@@ -338,3 +338,5 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 @keyframes tickShake{0%{transform:rotate(0)}6%{transform:rotate(-7deg) scale(1.06)}12%{transform:rotate(6deg) scale(1.06)}18%{transform:rotate(-4deg)}24%{transform:rotate(2deg)}30%,100%{transform:rotate(0) scale(1)}}
 @keyframes tickShakeBig{0%{transform:rotate(0) scale(1)}6%{transform:rotate(-10deg) scale(1.15)}12%{transform:rotate(9deg) scale(1.15)}18%{transform:rotate(-7deg) scale(1.1)}24%{transform:rotate(5deg)}32%{transform:rotate(-2deg)}40%,100%{transform:rotate(0) scale(1)}}
 @media (prefers-reduced-motion:reduce){.sp-status.low .sp-time b,.sp-status.last .sp-time b{animation:none}}
+.slip-sub{text-align:center;font-size:15px;color:var(--ink-2);margin:-4px 0 12px}
+.slip-note p+p{margin-top:6px}
