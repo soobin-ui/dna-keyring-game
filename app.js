@@ -81,7 +81,7 @@ function keyring() {
 function home() {
   const n = nextIdx(), all = n < 0;
   app.innerHTML = `<div class="home">
-  <div class="shelf" aria-hidden="true"><img src="img/shelf.jpg${V}" alt="" width="960" height="303"></div>
+  <div class="shelf" aria-hidden="true"><img src="img/shelf.jpg${V}" alt=""></div>
   <div class="top"><span class="live">BIOHEALTH PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
   <header class="intro-h">
     <div class="intro-t">
@@ -364,7 +364,9 @@ function route() {
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
-  ({ spot, pattern, ox, done }[h] || home)();
+  const fn = { spot, pattern, ox, done }[h] || home;
+  document.documentElement.classList.toggle('on-home', fn === home);
+  fn();
 }
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-go]');
