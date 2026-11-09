@@ -284,3 +284,5 @@ html.on-home body{background:linear-gradient(180deg,#BFE6D1 0,#BFE6D1 18%,#5FB9A
 @media (min-width:600px){.home .intro-h h1{font-size:clamp(28px,calc(var(--vh)*4.6),40px)}}
 /* 게임 화면 윗줄: 좁은 화면에선 '실험 n/3' 숨기고 제목을 살림 */
 @media (max-width:380px){.bar-t em{display:none}.bk{padding:0 8px;font-size:14px}.bar-t{font-size:15.5px}.bar-c{font-size:13.5px;padding:3px 9px}}
+/* 아이폰 노치·상태표시줄·카톡 인앱 브라우저에서 선반 윗부분이 가려지지 않게 */
+.shelf{box-sizing:content-box;padding-top:env(safe-area-inset-top,0px)}
