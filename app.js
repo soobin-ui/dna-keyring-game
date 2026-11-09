@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=23';
+const V = '?v=25';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'pattern', code: 'EXP-02', icon: 'icon_pattern', bg: '#FFF1DC', title: '같은 DNA 패턴 찾기', desc: '견본과 같은 색깔 순서의 DNA 고르기', time: '약 4–5분' },
@@ -523,6 +523,185 @@ function decode() {
   render();
 }
 
+
+/* ================= 시안: DNA 순서 기억하기 — #/memo ================= */
+const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+function memo() {
+  const L = ['A', 'T', 'G', 'C'];
+  const rndL = () => L[Math.floor(Math.random() * 4)];
+  let seq = [], input = 0, lives = 2, best = 0, busy = true, alive = true;
+  onCleanup(() => { alive = false; });
+  app.innerHTML = bar('DNA 순서 기억하기') + `<main class="g mm" data-fit>
+    <div class="sp-status mm-status">
+      <div class="sp-found"><span>기억한 글자</span><b id="mmBest">0</b><i>글자</i></div>
+      <div class="sp-time"><span>남은 기회</span><b id="mmLives" class="mm-lives"></b></div>
+    </div>
+    <div class="mm-screen">
+      <p class="mm-msg" id="mmMsg">준비!</p>
+      <div class="mm-big" id="mmBig"></div>
+      <div class="mm-slots" id="mmSlots"></div>
+    </div>
+    <div class="mm-pad">${L.map(c => `<button class="mm-b mm-${c}" data-c="${c}" aria-label="${c}">${c}</button>`).join('')}</div>
+  </main>
+  <div class="sp-ov" id="mmOv"><div class="sp-card" role="dialog" aria-modal="true">
+    <div class="mm-demo">${['G', 'A', 'T'].map((c, i) => `<span class="dt dt-${c}" style="animation-delay:${i * 0.5}s">${c}</span>`).join('')}</div>
+    <h2>DNA <em>순서</em> 기억하기</h2>
+    <ol class="sp-how">
+      <li><span class="dc-mini"><svg viewBox="0 0 40 32" width="40" height="32"><circle cx="20" cy="16" r="10" fill="#FFC93B"/><circle cx="20" cy="16" r="15" fill="none" stroke="#FFC93B" stroke-width="2" opacity=".5"/></svg></span><span>켜지는<br>순서 보기</span></li>
+      <li><span class="dc-mini">${['G', 'A', 'T'].map(c => `<span class="dt dt-${c}">${c}</span>`).join('')}</span><span>똑같이<br>누르기</span></li>
+      <li><span class="dc-mini"><b style="font-size:20px;color:#EF5350">♥♥</b></span><span>기회는<br>2번</span></li>
+    </ol>
+    <button class="btn sp-go" id="mmGo">시작하기</button></div></div>`;
+  const $ = id => document.getElementById(id);
+  const btns = [...app.querySelectorAll('.mm-b')];
+  const setLives = () => { $('mmLives').innerHTML = '<span>♥</span>'.repeat(lives) + '<span class="off">♥</span>'.repeat(2 - lives); };
+  const slots = (filled, all = false) => {
+    $('mmSlots').innerHTML = seq.map((c, i) => (all || i < filled) ? `<span class="dt dt-${c} sm">${c}</span>` : '<span class="mm-dot"></span>').join('');
+  };
+  const light = async (c, ms) => {
+    const b = btns.find(x => x.dataset.c === c);
+    b.classList.add('lit'); $('mmBig').innerHTML = `<span class="dt dt-${c} xl">${c}</span>`;
+    await sleepMs(ms);
+    b.classList.remove('lit'); $('mmBig').innerHTML = '';
+  };
+  const play = async () => {
+    busy = true; input = 0;
+    $('mmMsg').textContent = '잘 보세요!';
+    slots(0);
+    await sleepMs(600);
+    const on = Math.max(330, 620 - seq.length * 30);
+    for (const c of seq) { if (!alive) return; await light(c, on); await sleepMs(170); }
+    if (!alive) return;
+    $('mmMsg').textContent = '똑같은 순서로 누르세요';
+    busy = false;
+  };
+  const press = async c => {
+    if (busy) return;
+    const b = btns.find(x => x.dataset.c === c);
+    b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), 180);
+    if (c === seq[input]) {
+      input++; slots(input); buzz(15);
+      if (input === seq.length) {
+        busy = true; best = Math.max(best, seq.length); $('mmBest').textContent = best;
+        $('mmMsg').textContent = '정답! 한 글자 더 늘어나요';
+        await sleepMs(900); if (!alive) return;
+        seq.push(rndL()); play();
+      }
+    } else {
+      busy = true; lives--; setLives(); buzz([30, 60, 30]);
+      b.classList.add('bad'); setTimeout(() => b.classList.remove('bad'), 400);
+      slots(seq.length, true);
+      $('mmMsg').textContent = lives > 0 ? '앗! 정답은 이 순서예요. 한 번 더!' : '앗! 정답은 이 순서였어요';
+      await sleepMs(1800); if (!alive) return;
+      if (lives > 0) play(); else finish();
+    }
+  };
+  btns.forEach(b => b.addEventListener('click', () => press(b.dataset.c)));
+  const finish = () => {
+    store.memo = { best: Math.max((store.memo && store.memo.best) || 0, best) }; save();
+    sheet(`<div class="slip" role="dialog" aria-modal="true">
+      <div class="slip-top"><span>분석 리포트 · 기억력</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
+      <h3 class="slip-h"><span>${best}글자</span>까지 기억했어요!</h3>
+      <ul class="slip-rows"><li><span>이번 기록</span><i></i><b>${best}글자</b></li><li><span>내 최고 기록</span><i></i><b>${store.memo.best}글자</b></li></ul>
+      <div class="slip-note"><span>게임 속 DNA 이야기</span><p>DNA는 A·T·G·C 네 글자의 순서로 정보를 담아요.</p><p>글자 하나만 바뀌어도 내용이 달라질 수 있어서, 세포는 DNA를 복사할 때 순서를 아주 정확하게 지켜요.</p></div>
+      <div class="slip-btns"><button class="btn line" data-go="#/memo">다시 하기</button><button class="btn" data-go="#/">처음으로</button></div></div>`);
+  };
+  setLives();
+  $('mmGo').onclick = () => { $('mmOv').remove(); seq = [rndL(), rndL(), rndL()]; play(); };
+}
+
+/* ================= 시안: 실험실 카드 뒤집기 — #/cards ================= */
+const CARD_ITEMS = [
+  { k: 'dna', n: 'DNA', f: '우리 몸을 만드는 설명서예요.' },
+  { k: 'scope', n: '현미경', f: '눈에 안 보이는 세포를 크게 보여줘요.' },
+  { k: 'cell', n: '세포', f: '우리 몸을 이루는 작은 방. 그 안에 DNA가 있어요.' },
+  { k: 'tube', n: '시험관', f: '실험할 때 액체를 담는 가는 유리관이에요.' },
+  { k: 'beaker', n: '비커', f: '액체를 담고 섞을 때 쓰는 컵이에요.' },
+  { k: 'key', n: 'DNA 키링', f: '지금 온수조에서 만들어지고 있는 바로 그 키링!' },
+];
+function cardIcon(k) {
+  if (k === 'key') return `<img src="img/keyring.png${V}" alt="" style="width:58%;height:auto">`;
+  const s = {
+    dna: `<path d="M22 6c0 14 20 14 20 26s-20 14-20 26M42 6c0 14-20 14-20 26s20 14 20 26" fill="none" stroke="#17323A" stroke-width="4" stroke-linecap="round"/><path d="M25 14h14M28 22h8M28 42h8M25 50h14" stroke-width="4" stroke-linecap="round" stroke="#EF5350"/><path d="M28 22h8M28 42h8" stroke="#3D8BF2" stroke-width="4" stroke-linecap="round"/>`,
+    scope: `<rect x="14" y="52" width="36" height="6" rx="3" fill="#17323A"/><path d="M40 52V36q0-10-8-14" fill="none" stroke="#17323A" stroke-width="6" stroke-linecap="round"/><rect x="16" y="38" width="26" height="5" rx="2" fill="#0E9F8E"/><g transform="rotate(-25 28 20)"><rect x="23" y="8" width="10" height="22" rx="3" fill="#3D8BF2"/><rect x="22" y="4" width="12" height="6" rx="2" fill="#17323A"/></g>`,
+    cell: `<circle cx="32" cy="32" r="24" fill="#FFD6E0" stroke="#EF5350" stroke-width="3"/><circle cx="34" cy="30" r="9" fill="#B9A2FF" stroke="#6B3FD4" stroke-width="2.5"/><ellipse cx="18" cy="38" rx="4" ry="2.5" fill="#34B36B"/><ellipse cx="44" cy="44" rx="4" ry="2.5" fill="#34B36B"/>`,
+    tube: `<g transform="rotate(20 32 32)"><rect x="25" y="6" width="14" height="50" rx="7" fill="#fff" stroke="#17323A" stroke-width="3"/><path d="M27 32h10v17a5 5 0 0 1-10 0z" fill="#34B36B"/><rect x="23" y="4" width="18" height="8" rx="2" fill="#EF5350"/></g>`,
+    beaker: `<path d="M16 10h32M20 10v38a6 6 0 0 0 6 6h12a6 6 0 0 0 6-6V10" fill="#fff" stroke="#17323A" stroke-width="3" stroke-linejoin="round"/><path d="M22 32h20v16a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z" fill="#3D8BF2"/><path d="M24 20h6M24 26h4" stroke="#17323A" stroke-width="2.5" stroke-linecap="round"/>`,
+  }[k];
+  return `<svg viewBox="0 0 64 64" style="width:62%;height:auto">${s}</svg>`;
+}
+const CARD_TIME = 90;
+function cards() {
+  const deck = shuffle([...CARD_ITEMS, ...CARD_ITEMS].map((it, i) => ({ ...it, id: i })));
+  let open = [], matched = new Set(), moves = 0, t0 = 0, done = false, lock = false, iv = 0;
+  onCleanup(() => clearInterval(iv));
+  app.innerHTML = bar('실험실 카드 뒤집기') + `<main class="g cd" data-fit>
+    <div class="sp-status" id="cdStatus">
+      <div class="sp-found"><span>찾은 짝</span><b id="cdN">0</b><i>/ 6</i></div>
+      <div class="sp-time"><span>남은 시간</span><b id="cdT">${fmt(CARD_TIME)}</b></div>
+      <div class="sp-bar"><i id="cdBar"></i></div>
+    </div>
+    <div class="cd-grid">${deck.map((c, i) => `<button class="cd-card" data-i="${i}" aria-label="카드 ${i + 1}">
+      <span class="cd-in"><span class="cd-back"><svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg></span>
+      <span class="cd-front">${cardIcon(c.k)}<em>${c.n}</em></span></span></button>`).join('')}</div>
+    <p class="cd-fact" id="cdFact">같은 그림 2장을 찾아보세요</p>
+  </main>
+  <div class="sp-ov" id="cdOv"><div class="sp-card" role="dialog" aria-modal="true">
+    <div class="cd-demo"><span class="cd-mini back"></span><span class="cd-mini">${cardIcon('dna')}</span><span class="cd-mini">${cardIcon('dna')}</span></div>
+    <h2>실험실 <em>카드</em> 뒤집기</h2>
+    <ol class="sp-how">
+      <li><span class="dc-mini"><span class="cd-mini back sm"></span><span class="cd-mini back sm"></span></span><span>카드 2장<br>뒤집기</span></li>
+      <li><span class="dc-mini"><span class="cd-mini sm">${cardIcon('cell')}</span><span class="cd-mini sm">${cardIcon('cell')}</span></span><span>같은 그림<br>찾기</span></li>
+      <li><span class="dc-mini"><svg viewBox="0 0 56 40" width="48" height="34"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg></span><span><b style="color:#EF5350">1분 30초</b><br>안에</span></li>
+    </ol>
+    <button class="btn sp-go" id="cdGo">시작하기</button></div></div>`;
+  const $ = id => document.getElementById(id);
+  const left = () => t0 ? Math.max(0, CARD_TIME - (performance.now() - t0) / 1000) : CARD_TIME;
+  const tick = () => {
+    if (done) return;
+    const L = left();
+    $('cdT').textContent = fmt(Math.ceil(L));
+    $('cdBar').style.width = (L / CARD_TIME * 100).toFixed(2) + '%';
+    const st = $('cdStatus');
+    if (L <= 30 && !st.classList.contains('low')) buzz([60, 60, 60]);
+    st.classList.toggle('low', L <= 30); st.classList.toggle('last', L <= 10);
+    if (L <= 0) finish(false);
+  };
+  const cardsEl = [...app.querySelectorAll('.cd-card')];
+  cardsEl.forEach(el => el.addEventListener('click', () => {
+    if (!t0 || done || lock) return;
+    const i = +el.dataset.i;
+    if (matched.has(i) || open.includes(i)) return;
+    el.classList.add('up'); open.push(i);
+    if (open.length === 2) {
+      moves++;
+      const [a, b] = open;
+      if (deck[a].k === deck[b].k) {
+        matched.add(a); matched.add(b); open = []; buzz(30);
+        setTimeout(() => { cardsEl[a].classList.add('ok'); cardsEl[b].classList.add('ok'); }, 250);
+        $('cdN').textContent = matched.size / 2;
+        $('cdFact').innerHTML = `<b>${deck[a].n}</b> ${deck[a].f}`;
+        if (matched.size === deck.length) finish(true);
+      } else {
+        lock = true;
+        setTimeout(() => { cardsEl[a].classList.remove('up'); cardsEl[b].classList.remove('up'); open = []; lock = false; }, 800);
+      }
+    }
+  }));
+  const finish = all => {
+    if (done) return;
+    done = true; clearInterval(iv);
+    const n = matched.size / 2, L = left();
+    setTimeout(() => sheet(`<div class="slip" role="dialog" aria-modal="true">
+      <div class="slip-top"><span>분석 리포트 · 카드 뒤집기</span><span>No.${Math.floor(Math.random() * 9000) + 1000}</span></div>
+      <h3 class="slip-h">${all ? '6쌍을 <span>모두</span> 찾았어요!' : `시간 종료! <span>${n}쌍</span> 찾았어요`}</h3>
+      <ul class="slip-rows"><li><span>찾은 짝</span><i></i><b>${n} / 6</b></li><li><span>뒤집은 횟수</span><i></i><b>${moves}번</b></li>${all ? `<li><span>남은 시간</span><i></i><b>${fmt(Math.ceil(L))}</b></li>` : ''}</ul>
+      <div class="slip-note"><span>게임 속 DNA 이야기</span><p>DNA는 우리 몸의 세포 하나하나에 들어 있어요.</p><p>한 가닥은 너무 가늘어 눈에 안 보이지만, 아주 많이 모이면 하얀 실처럼 보여요. 키링 속 하얀 가닥이 바로 그 모습이에요.</p></div>
+      <div class="slip-btns"><button class="btn line" data-go="#/cards">다시 하기</button><button class="btn" data-go="#/">처음으로</button></div></div>`), all ? 600 : 300);
+  };
+  $('cdGo').onclick = () => { $('cdOv').remove(); t0 = performance.now(); iv = setInterval(tick, 200); };
+}
+
 /* ================= 휴대폰 크기에 맞춰 통째로 확대·축소 ================= */
 const BASE_W = 390, MAX_Z = 1.7;
 function fit() {
@@ -550,7 +729,7 @@ function route() {
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
-  const fn = { spot, pattern, ox, done, decode }[h] || home;
+  const fn = { spot, pattern, ox, done, decode, memo, cards }[h] || home;
   document.documentElement.classList.toggle('on-home', fn === home);
   fn();
   fit();
