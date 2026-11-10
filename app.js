@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=30';
+const V = '?v=31';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -380,7 +380,7 @@ function ox() {
       og.querySelectorAll('.oxk').forEach(b => b.classList.add((b.dataset.v === '1') === q.a ? 'right' : b === btn ? 'wrong' : 'dim'));
       if (ok) { score++; buzz(30); } else buzz([20, 60, 20]);
       const fb = document.getElementById('fb');
-      fb.innerHTML = `<div class="explain"><p class="res ${ok ? 'ok' : 'no'}">${ok ? '정답!' : '아쉬워요.'} 답은 ${q.a ? 'O' : 'X'}</p>
+      fb.innerHTML = `<div class="explain"><p class="res ${ok ? 'ok' : 'no'}">${ok ? '정답!' : '땡!'} 답은 ${q.a ? 'O' : 'X'}</p>
         <p><span class="lbl">해설</span>${q.e}</p></div>
         <button class="btn" id="nx">${i + 1 < qs.length ? '다음 문제' : '결과 보기'}</button>`;
       document.getElementById('nx').onclick = () => { i++; i < qs.length ? show() : finish(); };
