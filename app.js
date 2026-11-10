@@ -15,10 +15,10 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=28';
+const V = '?v=29';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
-  { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '같은 그림 카드 2장씩 찾아 짝 맞추기', time: '약 2분' },
+  { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 4–6분' },
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
@@ -106,7 +106,7 @@ function home() {
     ${GAMES.map((g, k) => {
       const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
       const v = run[g.id];
-      const note = st === 'ok' ? (g.id === 'spot' && String(v).includes(':') ? '✓ 완료' : `✓ 완료 · ${g.id === 'ox' ? `${v} 정답` : `${v} 찾음`}`) : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
+      const note = st === 'ok' ? (g.id === 'spot' && String(v).includes(':') ? '✓ 완료' : (g.id === 'cards' ? (String(v).endsWith('/5') ? `✓ 완료 · ${v}단계` : '✓ 완료') : `✓ 완료 · ${g.id === 'ox' ? `${v} 정답` : `${v} 찾음`}`)) : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
       return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
         <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${st === 'ok' ? '✓' : k + 1}</b></span>
         <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
@@ -623,20 +623,29 @@ function cardIcon(k) {
   const src = k === 'key' ? 'keyring' : 'card_' + k;
   return `<img src="img/${src}.png${V}" alt="" style="height:${k === 'key' ? 64 : 66}%;width:auto;max-width:86%;object-fit:contain" draggable="false">`;
 }
-const CARD_TIME = 90;
+// 단계마다 카드가 2장씩 늘어나요: 4 → 6 → 8 → 10 → 12장
+const CARD_LV = [
+  { pairs: 2, cols: 2, time: 30 },
+  { pairs: 3, cols: 3, time: 40 },
+  { pairs: 4, cols: 4, time: 50 },
+  { pairs: 5, cols: 4, time: 65 },
+  { pairs: 6, cols: 4, time: 80 },
+];
+const CD_BOARD_W = 358, CD_BOARD_H = 284, CD_GAP = 8;
+const cdBack = `<svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
 function cards() {
-  const deck = shuffle([...CARD_ITEMS, ...CARD_ITEMS].map((it, i) => ({ ...it, id: i })));
-  let open = [], matched = new Set(), moves = 0, t0 = 0, done = false, lock = false, iv = 0;
-  onCleanup(() => clearInterval(iv));
+  let lv = 0, cleared = 0, moves = 0, pairsTotal = 0;
+  let deck = [], open = [], matched = new Set(), t0 = 0, playing = false, lock = false, iv = 0, peekT = 0;
+  onCleanup(() => { clearInterval(iv); clearTimeout(peekT); });
+  const N = CARD_LV.length;
   app.innerHTML = bar('실험실 카드 뒤집기') + `<main class="g cd" data-fit>
     <div class="sp-status" id="cdStatus">
-      <div class="sp-found"><span>찾은 짝</span><b id="cdN">0</b><i>/ 6</i></div>
-      <div class="sp-time"><span>남은 시간</span><b id="cdT">${fmt(CARD_TIME)}</b></div>
+      <div class="sp-found cd-lv"><span>단계</span><b id="cdLv">1</b><i>/ ${N}</i></div>
+      <div class="sp-found cd-pr"><span>찾은 짝</span><b id="cdN">0</b><i id="cdNt">/ 2</i></div>
+      <div class="sp-time"><span>남은 시간</span><b id="cdT">${fmt(CARD_LV[0].time)}</b></div>
       <div class="sp-bar"><i id="cdBar"></i></div>
     </div>
-    <div class="cd-grid">${deck.map((c, i) => `<button class="cd-card" data-i="${i}" aria-label="카드 ${i + 1}">
-      <span class="cd-in"><span class="cd-back"><svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg></span>
-      <span class="cd-front">${cardIcon(c.k)}<em>${c.n}</em></span></span></button>`).join('')}</div>
+    <div class="cd-grid" id="cdGrid"></div>
     <p class="cd-fact" id="cdFact">같은 그림 2장을 찾아보세요</p>
   </main>
   <div class="sp-ov" id="cdOv"><div class="sp-card" role="dialog" aria-modal="true">
@@ -645,56 +654,108 @@ function cards() {
     <ol class="sp-how">
       <li><span class="dc-mini"><span class="cd-mini back sm"></span><span class="cd-mini back sm"></span></span><span>카드 2장<br>뒤집기</span></li>
       <li><span class="dc-mini"><span class="cd-mini sm">${cardIcon('petri')}</span><span class="cd-mini sm">${cardIcon('petri')}</span></span><span>같은 그림<br>찾기</span></li>
-      <li><span class="dc-mini"><svg viewBox="0 0 56 40" width="48" height="34"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg></span><span><b style="color:#EF5350">1분 30초</b><br>안에</span></li>
+      <li><span class="dc-mini cd-grow"><i></i><i></i><i></i><i></i><i></i><i></i></span><span>갈수록<br><b style="color:#EF5350">카드가 늘어요</b></span></li>
     </ol>
-    <button class="btn sp-go" id="cdGo">시작하기</button></div></div>`;
+    <button class="btn sp-go" id="cdGo">1단계 시작하기</button></div></div>`;
   const $ = id => document.getElementById(id);
-  const left = () => t0 ? Math.max(0, CARD_TIME - (performance.now() - t0) / 1000) : CARD_TIME;
+  const L = () => CARD_LV[lv];
+  const left = () => t0 ? Math.max(0, L().time - (performance.now() - t0) / 1000) : L().time;
   const tick = () => {
-    if (done) return;
-    const L = left();
-    $('cdT').textContent = fmt(Math.ceil(L));
-    $('cdBar').style.width = (L / CARD_TIME * 100).toFixed(2) + '%';
+    if (!playing) return;
+    const r = left();
+    $('cdT').textContent = fmt(Math.ceil(r));
+    $('cdBar').style.width = (r / L().time * 100).toFixed(2) + '%';
     const st = $('cdStatus');
-    if (L <= 30 && !st.classList.contains('low')) buzz([60, 60, 60]);
-    st.classList.toggle('low', L <= 30); st.classList.toggle('last', L <= 10);
-    if (L <= 0) finish(false);
+    if (r <= 10 && !st.classList.contains('low')) buzz([60, 60, 60]);
+    st.classList.toggle('low', r <= 10); st.classList.toggle('last', r <= 5);
+    if (r <= 0) fail();
   };
-  const cardsEl = [...app.querySelectorAll('.cd-card')];
-  cardsEl.forEach(el => el.addEventListener('click', () => {
-    if (!t0 || done || lock) return;
+  const deal = () => {
+    const { pairs, cols } = L();
+    const items = shuffle([...CARD_ITEMS]).slice(0, pairs);
+    deck = shuffle([...items, ...items]).map((it, i) => ({ ...it, id: i }));
+    open = []; matched = new Set(); lock = true; playing = false; t0 = 0;
+    const rows = Math.ceil(deck.length / cols);
+    const w = Math.floor(Math.min(112, (CD_BOARD_W - CD_GAP * (cols - 1)) / cols, (CD_BOARD_H - CD_GAP * (rows - 1)) / rows / 1.05));
+    $('cdLv').textContent = lv + 1; $('cdN').textContent = 0; $('cdNt').textContent = `/ ${pairs}`;
+    $('cdT').textContent = fmt(L().time); $('cdBar').style.width = '100%';
+    $('cdStatus').classList.remove('low', 'last');
+    const g = $('cdGrid');
+    g.style.setProperty('--cw', w + 'px'); g.style.width = (cols * w + CD_GAP * (cols - 1)) + 'px';
+    g.innerHTML = deck.map((c, i) => `<button class="cd-card up deal" style="animation-delay:${i * 45}ms" data-i="${i}" aria-label="카드 ${i + 1}">
+      <span class="cd-in"><span class="cd-back">${cdBack}</span>
+      <span class="cd-front">${cardIcon(c.k)}<em>${c.n}</em></span></span></button>`).join('');
+    $('cdFact').innerHTML = `<b>${lv + 1}단계</b> 카드 ${deck.length}장! 잘 봐 두세요`;
+    const els = [...g.querySelectorAll('.cd-card')];
+    els.forEach(el => el.addEventListener('click', () => flip(el, els)));
+    // 처음에 잠깐 앞면을 보여주고 뒤집어요
+    peekT = setTimeout(() => {
+      els.forEach(el => el.classList.remove('up'));
+      $('cdFact').textContent = '같은 그림 2장을 찾아보세요';
+      peekT = setTimeout(() => { lock = false; playing = true; t0 = performance.now(); }, 350);
+    }, deck.length * 45 + 1100 + pairs * 300);
+  };
+  const flip = (el, els) => {
+    if (!playing || lock) return;
     const i = +el.dataset.i;
     if (matched.has(i) || open.includes(i)) return;
     el.classList.add('up'); open.push(i);
-    if (open.length === 2) {
-      moves++;
-      const [a, b] = open;
-      if (deck[a].k === deck[b].k) {
-        matched.add(a); matched.add(b); open = []; buzz(30);
-        setTimeout(() => { cardsEl[a].classList.add('ok'); cardsEl[b].classList.add('ok'); }, 250);
-        $('cdN').textContent = matched.size / 2;
-        $('cdFact').innerHTML = `<b>${deck[a].n}</b> ${deck[a].f}`;
-        if (matched.size === deck.length) finish(true);
-      } else {
-        lock = true;
-        setTimeout(() => { cardsEl[a].classList.remove('up'); cardsEl[b].classList.remove('up'); open = []; lock = false; }, 800);
-      }
+    if (open.length < 2) return;
+    moves++;
+    const [a, b] = open;
+    if (deck[a].k === deck[b].k) {
+      matched.add(a); matched.add(b); open = []; buzz(30); pairsTotal++;
+      setTimeout(() => { els[a].classList.add('ok'); els[b].classList.add('ok'); }, 250);
+      const nb = $('cdN'); nb.textContent = matched.size / 2; nb.classList.remove('bump'); void nb.offsetWidth; nb.classList.add('bump');
+      $('cdFact').innerHTML = `<b>${deck[a].n}</b> ${deck[a].f}`;
+      if (matched.size === deck.length) win();
+    } else {
+      lock = true;
+      setTimeout(() => { els[a].classList.remove('up'); els[b].classList.remove('up'); open = []; lock = false; }, 800);
     }
-  }));
-  const finish = all => {
-    if (done) return;
-    done = true; clearInterval(iv);
-    const n = matched.size / 2, L = left();
-    store.cards = { best: Math.max((store.cards && store.cards.best) || 0, n) }; save(); markDone('cards', `${n}/6`);
-    setTimeout(() => report({
+  };
+  const popup = html => {
+    const ov = document.createElement('div');
+    ov.className = 'sp-ov cd-pop'; ov.innerHTML = `<div class="sp-card" role="dialog" aria-modal="true">${html}</div>`;
+    app.appendChild(ov); return ov;
+  };
+  const minis = n => `<span class="cd-next">${Array.from({ length: n }, () => '<i></i>').join('')}</span>`;
+  const win = () => {
+    playing = false; clearInterval(iv); cleared = lv + 1;
+    if (cleared === N) { setTimeout(finish, 900); return; }
+    const nx = CARD_LV[lv + 1];
+    setTimeout(() => {
+      const ov = popup(`<p class="cd-pop-k">${lv + 1}단계 성공!</p>
+        <h2>다음은 카드 <em>${nx.pairs * 2}장</em></h2>${minis(nx.pairs * 2)}
+        <button class="btn sp-go" id="cdNext">${lv + 2}단계 시작하기</button>`);
+      ov.querySelector('#cdNext').onclick = () => { ov.remove(); lv++; deal(); iv = setInterval(tick, 200); };
+    }, 800);
+  };
+  const fail = () => {
+    playing = false; lock = true; clearInterval(iv);
+    deck.forEach((_, i) => { if (!matched.has(i)) app.querySelector(`.cd-card[data-i="${i}"]`).classList.add('up', 'miss'); });
+    setTimeout(() => {
+      const ov = popup(`<p class="cd-pop-k cd-pop-no">시간이 끝났어요</p>
+        <h2>${lv + 1}단계 <em>다시 도전</em>해 볼까요?</h2>
+        <button class="btn sp-go" id="cdRetry">다시 도전하기</button>
+        <button class="cd-stop" id="cdStop">여기까지 하고 결과 보기</button>`);
+      ov.querySelector('#cdRetry').onclick = () => { ov.remove(); deal(); iv = setInterval(tick, 200); };
+      ov.querySelector('#cdStop').onclick = () => { ov.remove(); finish(); };
+    }, 1200);
+  };
+  const finish = () => {
+    playing = false; clearInterval(iv);
+    const all = cleared === N;
+    store.cards2 = { best: Math.max((store.cards2 && store.cards2.best) || 0, cleared) }; save(); markDone('cards', `${cleared}/${N}`);
+    report({
       id: 'cards', code: 'EXP-02', icon: 'icon_cards', again: '#/cards',
-      head: all ? '6쌍을 <span>모두</span> 찾았어요!' : `시간 종료! <span>${n}쌍</span> 찾았어요`,
-      rows: [['찾은 짝', `${n} / 6`], ['뒤집은 횟수', `${moves}번`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(CARD_TIME)], ['내 최고 기록', `${store.cards.best} / 6`]],
+      head: all ? `${N}단계를 <span>모두</span> 성공했어요!` : cleared ? `<span>${cleared}단계</span>까지 성공했어요` : '다음엔 <span>1단계</span>부터 다시 도전!',
+      rows: [['성공한 단계', `${cleared} / ${N}`], ['맞춘 짝', `${pairsTotal}쌍`], ['뒤집은 횟수', `${moves}번`], ['내 최고 기록', `${store.cards2.best} / ${N}단계`]],
       noteTitle: '게임 속 DNA 이야기',
       note: 'DNA는 우리 몸의 세포 하나하나에 들어 있어요.|한 가닥은 너무 가늘어 눈에 안 보이지만, 아주 많이 모이면 하얀 실처럼 보여요. 키링 속 하얀 가닥이 바로 그 모습이에요.',
-    }), all ? 600 : 300);
+    });
   };
-  $('cdGo').onclick = () => { $('cdOv').remove(); t0 = performance.now(); iv = setInterval(tick, 200); };
+  $('cdGo').onclick = () => { $('cdOv').remove(); deal(); iv = setInterval(tick, 200); };
 }
 
 /* ================= 휴대폰 크기에 맞춰 통째로 확대·축소 ================= */
