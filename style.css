@@ -449,3 +449,10 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 .cd-mini svg,.cd-mini img{width:70%!important}
 @media (prefers-reduced-motion:reduce){.cd-in{transition:none}.cd-card.deal,.cd-next i{animation:none}.mm-demo .dt{animation:none}}
 .sp-time b.mm-lives{display:inline-flex;gap:3px;white-space:nowrap;font-size:28px}
+
+/* 첫 화면 시작 버튼: 처음에 톡 튀어나오고, 이후 가끔 통통 */
+.home .cta .btn{animation:ctaPop .55s cubic-bezier(.34,1.56,.64,1) .3s both,ctaNudge 2.8s ease-in-out 1.6s infinite}
+@keyframes ctaPop{from{scale:.6;opacity:0}to{scale:1;opacity:1}}
+@keyframes ctaNudge{0%,68%,100%{scale:1}76%{scale:1.07}84%{scale:.97}92%{scale:1.02}}
+.home .foot{text-align:center}
+@media (prefers-reduced-motion:reduce){.home .cta .btn{animation:none}}
