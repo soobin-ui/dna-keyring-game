@@ -15,7 +15,7 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=32';
+const V = '?v=33';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -393,8 +393,12 @@ function ox() {
     report({
       id: 'ox', code: 'EXP-03', icon: 'icon_ox', again: '#/ox',
       head: score === total ? `<span>만점!</span> 5문제를 다 맞혔어요` : `${total}문제 중 <span>${score}개</span> 정답`,
+      sub: score === total ? 'DNA 박사님이 따로 없네요!'
+        : score >= 3 ? 'DNA와 꽤 친해졌어요. 틀린 문제도 해설을 한 번 더 보면 금방 기억나요.'
+        : '처음 듣는 이야기가 많았죠? 오늘 알게 된 것만으로도 충분해요.',
       rows: [['맞힌 문제', `${score} / ${total}`], ['내 최고 점수', `${best} / ${total}`]],
-      note: '문제는 할 때마다 섞여서 나와요. 다시 하면 처음 보는 문제를 만날 수 있어요.',
+      noteTitle: '게임 속 DNA 이야기',
+      note: '오늘 푼 문제는 모두 진짜 과학 이야기예요.|사람의 DNA는 약 30억 개의 글자로 되어 있고, 사람끼리는 99.9%가 같아요. 남은 0.1%의 작은 차이가 나를 나답게 만들어요.',
     });
   }
   show();
