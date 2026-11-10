@@ -440,7 +440,7 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 .cd-front{background:#fff;transform:rotateY(180deg);box-shadow:0 3px 0 var(--line)}
 .cd-front em{font-style:normal;font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap;letter-spacing:-.02em}
 .cd-card.ok .cd-front{box-shadow:inset 0 0 0 3px var(--teal);background:var(--teal-wash)}
-.cd-fact{margin-top:10px;min-height:46px;background:#fff;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.4;box-shadow:0 2px 0 var(--line);text-align:center}
+.cd-fact{margin-top:10px;min-height:64px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.4;box-shadow:0 2px 0 var(--line);text-align:center}
 .cd-fact b{color:var(--teal-d)}
 .cd-demo{display:flex;gap:6px;justify-content:center;margin:2px 0 6px}
 .cd-mini{width:52px;height:56px;border-radius:10px;background:#fff;box-shadow:0 2px 0 var(--line),inset 0 0 0 2px var(--line);display:grid;place-items:center}
@@ -464,3 +464,19 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
   transform:skewX(-20deg);animation:btnShine 2.8s ease-in-out .9s infinite;pointer-events:none;z-index:-1}
 @keyframes btnShine{0%{left:-45%}38%,100%{left:125%}}
 @media (prefers-reduced-motion:reduce){.home .cta .btn::after,.sp-go::after{animation:none;display:none}}
+
+/* 길게 눌러도 그림 저장·선택 메뉴가 뜨지 않게 */
+img,svg.shot{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
+
+/* OX·최종 결과도 한 화면: 해설 자리를 미리 비워 두어 답을 고른 뒤에도 크기가 바뀌지 않게 */
+.g.ox{padding-bottom:16px}
+.g.ox #fb{min-height:232px;display:flow-root}
+.g.done{padding-bottom:20px}
+
+/* 휴대폰을 가로로 들면 세로로 돌려 달라는 안내 (세로 화면용 게임) */
+.rotate{display:none}
+@media (orientation:landscape) and (max-height:500px){
+  .rotate{display:flex;position:fixed;inset:0;z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:linear-gradient(180deg,#BFE6D1,#0F6F66);color:#17323A;font-family:var(--font-body);font-size:20px;font-weight:700;text-align:center}
+  .rotate b{color:#fff;background:#17323A;padding:0 8px;border-radius:8px}
+}

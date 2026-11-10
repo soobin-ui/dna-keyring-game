@@ -4,7 +4,8 @@
 /* ================= 공통 ================= */
 const app = document.getElementById('app');
 const KEY = 'dna-playground-v1';
-let store = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
+const asObj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+let store = (() => { try { return asObj(JSON.parse(localStorage.getItem(KEY))); } catch (e) { return {}; } })();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const pad = n => String(n).padStart(2, '0');
@@ -13,9 +14,22 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 let cleanups = [];
 const onCleanup = f => cleanups.push(f);
+// 화면이 바뀌면 이전 화면에서 예약해 둔 일은 실행하지 않음
+let gen = 0;
+const later = (fn, ms) => { const g = gen; return setTimeout(() => { if (g === gen) fn(); }, ms); };
+// 다른 앱을 보고 오는 동안은 남은 시간이 줄지 않게: 숨겨진 시간만큼 시작 시각을 뒤로 미룸
+function pauseWhenHidden(getT0, setT0, running) {
+  let hidAt = 0;
+  const onVis = () => {
+    if (document.hidden) { if (running()) hidAt = performance.now(); }
+    else if (hidAt) { if (getT0()) setT0(getT0() + (performance.now() - hidAt)); hidAt = 0; }
+  };
+  document.addEventListener('visibilitychange', onVis);
+  onCleanup(() => document.removeEventListener('visibilitychange', onVis));
+}
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=33';
+const V = '?v=38';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -24,7 +38,7 @@ const GAMES = [
 
 // 순서대로 3개 진행: 끝낸 실험의 결과를 이 휴대폰에만 저장
 const RUN_KEY = 'dna-run-v1';
-let run = (() => { try { return JSON.parse(localStorage.getItem(RUN_KEY)) || {}; } catch (e) { return {}; } })();
+let run = (() => { try { return asObj(JSON.parse(localStorage.getItem(RUN_KEY))); } catch (e) { return {}; } })();
 const saveRun = () => { try { localStorage.setItem(RUN_KEY, JSON.stringify(run)); } catch (e) {} };
 const nextIdx = () => GAMES.findIndex(g => !run[g.id]);
 const markDone = (id, v) => { run[id] = v; saveRun(); };
@@ -38,6 +52,7 @@ function sheet(html) {
   d.className = 'overlay';
   d.innerHTML = html;
   app.appendChild(d);
+  fit();
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
@@ -72,11 +87,11 @@ function keyring() {
   lbl.textContent = label(shown);
   box.classList.toggle('full', shown >= 3);
   if (stage > shown) {
-    setTimeout(() => {
+    later(() => {
       fill.style.clipPath = fill.style.webkitClipPath = clip(stage);
       level(stage);
       box.classList.add('bump');
-      setTimeout(() => { lbl.textContent = label(stage); box.classList.toggle('full', stage >= 3); }, 700);
+      later(() => { lbl.textContent = label(stage); box.classList.toggle('full', stage >= 3); }, 700);
     }, 450);
   }
   try { sessionStorage.setItem(KR_SHOWN, stage); } catch (e) {}
@@ -124,14 +139,21 @@ function home() {
 }
 
 /* ================= 최종 결과 ================= */
+// 최종 결과 표기: 5/7 → '7곳 중 5곳'
+function scoreText(id, v) {
+  const [a, b] = String(v).split('/');
+  if (!b) return '완료';
+  const u = { spot: '곳', cards: '단계', ox: '문제' }[id] || '';
+  return `${b}${u} 중 ${a}${u}`;
+}
 function done() {
   if (nextIdx() >= 0) { location.hash = '#/'; return; }
   app.innerHTML = `<nav class="bar"><button class="bk" data-go="#/">← 처음</button><span class="bar-t">최종 결과</span><span class="bar-c">3/3</span></nav>
-  <main class="g done">
+  <main class="g done" data-fit>
     <span class="tag">ANALYSIS COMPLETE</span>
     <h2 class="done-h">실험 3개를<br><span>모두 마쳤어요!</span></h2>
     <ul class="done-list">
-      ${GAMES.map((g, k) => `<li><img src="img/${g.icon}.png${V}" alt="" width="56" height="56"><span><small>실험 ${k + 1}</small>${g.title}</span><b>${run[g.id]}</b></li>`).join('')}
+      ${GAMES.map((g, k) => `<li><img src="img/${g.icon}.png${V}" alt="" width="56" height="56"><span><small>실험 ${k + 1}</small>${g.title}</span><b>${scoreText(g.id, run[g.id])}</b></li>`).join('')}
     </ul>
     <p class="done-p">키링이 완성될 때까지 조금만 기다려 주세요.</p>
     <button class="btn line" id="again">처음부터 다시 하기</button>
@@ -196,6 +218,7 @@ function playSpot() {
   };
   let iv = 0;
   onCleanup(() => clearInterval(iv));
+  pauseWhenHidden(() => t0, v => { t0 = v; }, () => t0 && !done);
   document.getElementById('spGo').onclick = () => {
     document.getElementById('spOv').remove();
     t0 = performance.now();
@@ -208,8 +231,8 @@ function playSpot() {
   };
   svgs.forEach(svg => svg.addEventListener('click', e => {
     if (done || !t0) return;
-    const r = svg.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 300;
+    const r = svg.getBoundingClientRect(), f = rectScale();
+    const x = (e.clientX / f - r.left) / r.width * 400, y = (e.clientY / f - r.top) / r.height * 300;
     let hit = -1, best = 1e9;
     DIFFS.forEach((d, i) => { const dist = Math.hypot(d.x - x, d.y - y); if (dist <= d.r + 8 && dist < best) { best = dist; hit = i; } });
     if (hit < 0) { add(svg, `<g class="miss"><path d="M${x - 8} ${y - 8}L${x + 8} ${y + 8}M${x + 8} ${y - 8}L${x - 8} ${y + 8}"/></g>`, 700); buzz(12); return; }
@@ -240,7 +263,7 @@ function playSpot() {
     DIFFS.forEach((d, i) => { if (!found.has(i)) svgs.forEach(s => add(s, `<circle class="missed" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`)); });
     const best = store.spot && typeof store.spot.best === 'number' && store.spot.best <= 7 ? Math.max(store.spot.best, n) : n;
     store.spot = { best }; save(); markDone('spot', `${n}/7`);
-    setTimeout(() => report({
+    later(() => report({
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
       head: all ? `다른 곳 7개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
       rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(SPOT_TIME)], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
@@ -364,7 +387,7 @@ const X_SVG = `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M18 18 62 62
 function ox() {
   const qs = shuffle(POOL).slice(0, 5);
   let i = 0, score = 0;
-  app.innerHTML = bar('DNA 상식 OX 퀴즈', `Q1/5`) + `<main class="g" id="og"></main>`;
+  app.innerHTML = bar('DNA 상식 OX 퀴즈', `Q1/5`) + `<main class="g ox" id="og" data-fit></main>`;
   const og = document.getElementById('og');
   function show() {
     window.scrollTo(0, 0);
@@ -388,7 +411,7 @@ function ox() {
     }));
   }
   function finish() {
-    const total = qs.length, best = store.ox ? Math.max(store.ox.best, score) : score;
+    const total = qs.length, best = store.ox && typeof store.ox.best === 'number' ? Math.max(store.ox.best, score) : score;
     store.ox = { best, total }; save(); markDone('ox', `${score}/${total}`);
     report({
       id: 'ox', code: 'EXP-03', icon: 'icon_ox', again: '#/ox',
@@ -671,6 +694,7 @@ function cards() {
   let lv = 0, cleared = 0, moves = 0, pairsTotal = 0;
   let deck = [], open = [], matched = new Set(), t0 = 0, playing = false, lock = false, iv = 0, peekT = 0;
   onCleanup(() => { clearInterval(iv); clearTimeout(peekT); });
+  pauseWhenHidden(() => t0, v => { t0 = v; }, () => playing);
   const N = CARD_LV.length;
   app.innerHTML = bar('실험실 카드 뒤집기') + `<main class="g cd" data-fit>
     <div class="sp-status" id="cdStatus">
@@ -739,13 +763,13 @@ function cards() {
     const [a, b] = open;
     if (deck[a].k === deck[b].k) {
       matched.add(a); matched.add(b); open = []; buzz(30); pairsTotal++;
-      setTimeout(() => { els[a].classList.add('ok'); els[b].classList.add('ok'); }, 250);
+      later(() => { els[a].classList.add('ok'); els[b].classList.add('ok'); }, 250);
       const nb = $('cdN'); nb.textContent = matched.size / 2; nb.classList.remove('bump'); void nb.offsetWidth; nb.classList.add('bump');
       $('cdFact').innerHTML = `<b>${deck[a].n}</b> ${deck[a].f}`;
       if (matched.size === deck.length) win();
     } else {
       lock = true;
-      setTimeout(() => { els[a].classList.remove('up'); els[b].classList.remove('up'); open = []; lock = false; }, 800);
+      later(() => { if (!playing) return; els[a].classList.remove('up'); els[b].classList.remove('up'); open = []; lock = false; }, 800);
     }
   };
   const popup = html => {
@@ -756,9 +780,9 @@ function cards() {
   const minis = n => `<span class="cd-next">${Array.from({ length: n }, () => '<i></i>').join('')}</span>`;
   const win = () => {
     playing = false; clearInterval(iv); cleared = lv + 1;
-    if (cleared === N) { setTimeout(finish, 900); return; }
+    if (cleared === N) { later(finish, 900); return; }
     const nx = CARD_LV[lv + 1];
-    setTimeout(() => {
+    later(() => {
       const ov = popup(`<p class="cd-pop-k">${lv + 1}단계 성공!</p>
         <h2>다음은 카드 <em>${nx.pairs * 2}장</em></h2>${minis(nx.pairs * 2)}
         <button class="btn sp-go" id="cdNext">${lv + 2}단계 시작하기</button>`);
@@ -768,7 +792,7 @@ function cards() {
   const fail = () => {
     playing = false; lock = true; clearInterval(iv);
     deck.forEach((_, i) => { if (!matched.has(i)) app.querySelector(`.cd-card[data-i="${i}"]`).classList.add('up', 'miss'); });
-    setTimeout(() => {
+    later(() => {
       const ov = popup(`<p class="cd-pop-k cd-pop-no">시간이 끝났어요</p>
         <h2>${lv + 1}단계 <em>다시 도전</em>해 볼까요?</h2>
         <button class="btn sp-go" id="cdRetry">다시 도전하기</button>
@@ -797,25 +821,58 @@ const BASE_W = 390, MAX_Z = 1.7;
 function fit() {
   const w = window.innerWidth, h = window.innerHeight;
   const home = app.querySelector('.home');
-  app.style.zoom = 1;
+  // 원래 크기(배율 1)에서 내용 높이를 잰 뒤 배율을 정함
+  app.style.zoom = 1; app.style.minHeight = '0px';
+  if (home) home.style.minHeight = '0px';
   let z = w / BASE_W;
-  if (home) {
-    home.style.minHeight = '0px';
-    const inner = home.querySelector('.home-inner');
-    z = Math.min(z, h / inner.offsetHeight);
-  } else if (app.querySelector('[data-fit]')) {
-    z = Math.min(z, h / app.offsetHeight);
-  }
+  // offsetHeight는 소수점을 버려서 1px 넘칠 수 있음 → 실제 높이 + 1px 여유로 계산
+  const hOf = el => el.getBoundingClientRect().height + 1;
+  if (home) z = Math.min(z, h / hOf(home.querySelector('.home-inner')));
+  else if (app.querySelector('[data-fit]')) z = Math.min(z, h / hOf(app));
+  // 결과 창이 떠 있으면 창 전체(아래 버튼까지)가 한 화면에 들어오게
+  const slip = app.querySelector('.overlay .slip');
+  if (slip) { slip.style.maxHeight = 'none'; z = Math.min(z, h * 0.96 / hOf(slip)); }
   z = Math.min(z, MAX_Z);
   app.style.zoom = z;
-  if (home) home.style.minHeight = (h / z) + 'px';
+  // 사파리는 배율에 따라 글자 폭이 조금씩 달라져 줄바꿈이 늘 수 있음 → 실제로 넘치면 그만큼 더 줄임
+  if (home || app.querySelector('[data-fit]')) {
+    for (let k = 0; k < 4; k++) {
+      const sh = document.documentElement.scrollHeight;
+      if (sh <= h) break;
+      z = z * h / sh * 0.995;
+      app.style.zoom = z;
+    }
+  }
+  // 확대·축소한 뒤 높이가 화면과 딱 맞게 (소수점 때문에 1~3px 스크롤이 생기지 않도록 내림)
+  const minH = Math.floor(h / z) + 'px';
+  app.style.minHeight = minH;
+  if (home) home.style.minHeight = minH;
+  if (slip) {
+    slip.style.maxHeight = minH;
+    // 결과 창도 실제로 넘치면(창 안에 스크롤이 생기면) 그만큼 더 줄임
+    for (let k = 0; k < 4 && slip.scrollHeight > slip.clientHeight + 1; k++) {
+      z = z * slip.clientHeight / slip.scrollHeight * 0.995;
+      app.style.zoom = z;
+      const m = Math.floor(h / z) + 'px';
+      app.style.minHeight = m; if (home) home.style.minHeight = m; slip.style.maxHeight = m;
+    }
+  }
 }
 window.addEventListener('resize', fit);
+// 사파리(그리고 옛 크롬)는 zoom 안의 요소 위치를 '줄이기 전' 값으로 알려 주고, 터치 위치는 '줄인 뒤' 값으로 알려 줌.
+// 이 휴대폰이 어느 쪽인지 그때그때 재서 터치 좌표를 맞춰 줌 (크롬 최신: 1, 사파리: zoom 배율)
+function rectScale() {
+  const z = parseFloat(app.style.zoom) || 1, w = app.getBoundingClientRect().width;
+  return w ? z * BASE_W / w : 1;
+}
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fit);
+document.addEventListener('touchstart', () => {}, { passive: true }); // iOS에서 :active(눌림) 효과가 보이게
 window.addEventListener('orientationchange', () => setTimeout(fit, 200));
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
 /* ================= 화면 전환 ================= */
 function route() {
+  gen++;
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
