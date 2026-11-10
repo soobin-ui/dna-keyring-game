@@ -15,10 +15,10 @@ let cleanups = [];
 const onCleanup = f => cleanups.push(f);
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=29';
+const V = '?v=30';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
-  { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 4–6분' },
+  { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
 
@@ -618,21 +618,51 @@ const CARD_ITEMS = [
   { k: 'tube', n: '시험관', f: '실험할 때 액체를 담는 가는 유리관이에요.' },
   { k: 'beaker', n: '비커', f: '액체를 담고 섞을 때 쓰는 컵이에요.' },
   { k: 'key', n: 'DNA 키링', f: '지금 온수조에서 만들어지고 있는 바로 그 키링!' },
+  { k: 'loupe', n: '돋보기', f: '작은 것을 크게 보여 주는 볼록한 유리예요.' },
+  { k: 'dropper', n: '스포이트', f: '액체를 한 방울씩 옮길 때 써요.' },
+  { k: 'goggles', n: '보안경', f: '실험할 때 눈을 지켜 주는 안경이에요.' },
+  { k: 'flask', n: '플라스크', f: '흔들어 섞어도 잘 넘치지 않는 세모 모양 유리병이에요.' },
+  { k: 'thermo', n: '온도계', f: '얼마나 따뜻한지 재는 도구예요.' },
+  { k: 'coat', n: '실험 가운', f: '실험할 때 옷을 지켜 주는 하얀 겉옷이에요.' },
 ];
 function cardIcon(k) {
   const src = k === 'key' ? 'keyring' : 'card_' + k;
   return `<img src="img/${src}.png${V}" alt="" style="height:${k === 'key' ? 64 : 66}%;width:auto;max-width:86%;object-fit:contain" draggable="false">`;
 }
-// 단계마다 카드가 2장씩 늘어나요: 4 → 6 → 8 → 10 → 12장
+// 단계마다 카드가 2장씩 늘어나요: 8 → 10 → 12 → 14 → 16장
 const CARD_LV = [
-  { pairs: 2, cols: 2, time: 30 },
-  { pairs: 3, cols: 3, time: 40 },
-  { pairs: 4, cols: 4, time: 50 },
-  { pairs: 5, cols: 4, time: 65 },
-  { pairs: 6, cols: 4, time: 80 },
+  { pairs: 4, cols: 4, time: 45 },
+  { pairs: 5, cols: 4, time: 55 },
+  { pairs: 6, cols: 4, time: 70 },
+  { pairs: 7, cols: 4, time: 85 },
+  { pairs: 8, cols: 4, time: 100 },
 ];
-const CD_BOARD_W = 358, CD_BOARD_H = 284, CD_GAP = 8;
+const CD_BOARD_W = 358, CD_BOARD_H = 352, CD_GAP = 7;
 const cdBack = `<svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
+// 같은 그림 두 장이 붙어 나오지 않게 섞어요.
+// 위아래·양옆은 절대 안 붙게, 가능하면 대각선도 안 붙게(안 되면 위아래·양옆만 지킴).
+function spreadDeal(cards, cols) {
+  const n = cards.length, rows = Math.ceil(n / cols), lastN = n - (rows - 1) * cols;
+  const pos = i => { const r = Math.floor(i / cols); return [r, (i % cols) + (r === rows - 1 ? (cols - lastN) / 2 : 0)]; };
+  const near = (i, j, diag) => {
+    const [r1, c1] = pos(i), [r2, c2] = pos(j), dr = Math.abs(r1 - r2), dc = Math.abs(c1 - c2);
+    if (dr === 0) return dc <= 1;
+    if (dr === 1) return diag ? dc <= 1 : dc < 1;
+    return false;
+  };
+  const ok = (d, diag) => d.every((c, i) => d.every((e, j) => j <= i || c.k !== e.k || !near(i, j, diag)));
+  // 같은 줄에 놓인 짝이 많으면 '한 칸 건너 같은 그림' 규칙이 보여서, 같은 줄 짝은 1~2쌍까지만
+  const mixed = d => {
+    let same = 0;
+    d.forEach((c, i) => d.forEach((e, j) => { if (j > i && c.k === e.k && pos(i)[0] === pos(j)[0]) same++; }));
+    return same <= (n <= 10 ? 2 : Math.max(1, Math.floor(n / 8)));
+  };
+  // 8·10장은 대각선까지 막으면 배치가 몇 가지로만 반복돼서, 대각선은 12장부터 막아요
+  for (const [diag, mix] of [[n > 10, true], [false, true], [false, false]]) {
+    for (let t = 0; t < 3000; t++) { const d = shuffle([...cards]); if (ok(d, diag) && (!mix || mixed(d))) return d; }
+  }
+  return shuffle([...cards]);
+}
 function cards() {
   let lv = 0, cleared = 0, moves = 0, pairsTotal = 0;
   let deck = [], open = [], matched = new Set(), t0 = 0, playing = false, lock = false, iv = 0, peekT = 0;
@@ -641,7 +671,7 @@ function cards() {
   app.innerHTML = bar('실험실 카드 뒤집기') + `<main class="g cd" data-fit>
     <div class="sp-status" id="cdStatus">
       <div class="sp-found cd-lv"><span>단계</span><b id="cdLv">1</b><i>/ ${N}</i></div>
-      <div class="sp-found cd-pr"><span>찾은 짝</span><b id="cdN">0</b><i id="cdNt">/ 2</i></div>
+      <div class="sp-found cd-pr"><span>찾은 짝</span><b id="cdN">0</b><i id="cdNt">/ 4</i></div>
       <div class="sp-time"><span>남은 시간</span><b id="cdT">${fmt(CARD_LV[0].time)}</b></div>
       <div class="sp-bar"><i id="cdBar"></i></div>
     </div>
@@ -673,7 +703,7 @@ function cards() {
   const deal = () => {
     const { pairs, cols } = L();
     const items = shuffle([...CARD_ITEMS]).slice(0, pairs);
-    deck = shuffle([...items, ...items]).map((it, i) => ({ ...it, id: i }));
+    deck = spreadDeal([...items, ...items], cols).map((it, i) => ({ ...it, id: i }));
     open = []; matched = new Set(); lock = true; playing = false; t0 = 0;
     const rows = Math.ceil(deck.length / cols);
     const w = Math.floor(Math.min(112, (CD_BOARD_W - CD_GAP * (cols - 1)) / cols, (CD_BOARD_H - CD_GAP * (rows - 1)) / rows / 1.05));

@@ -415,7 +415,7 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 .cd .sp-status{grid-template-columns:1fr auto;margin-bottom:10px}
 .cd .sp-status{grid-template-columns:auto 1fr auto;gap:0 18px}
 .cd .sp-found.cd-pr b{color:var(--teal-d)}
-.cd-grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:8px;height:284px}
+.cd-grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:7px;height:352px}
 .cd-card{width:var(--cw,110px);aspect-ratio:1/1.05;perspective:600px;padding:0}
 .cd-card.deal{animation:cdDeal .32s var(--ease-out) both}
 @keyframes cdDeal{from{opacity:0;transform:translateY(10px) scale(.85)}to{opacity:1;transform:none}}
@@ -438,7 +438,7 @@ svg.shot .missed{fill:rgba(255,201,59,.18);stroke:#F2A100;stroke-width:4;stroke-
 .cd-back{background:var(--teal);box-shadow:inset 0 -5px 0 rgba(0,0,0,.15)}
 .cd-back svg{width:44%;height:auto}
 .cd-front{background:#fff;transform:rotateY(180deg);box-shadow:0 3px 0 var(--line)}
-.cd-front em{font-style:normal;font-size:13px;font-weight:700;color:var(--ink-2)}
+.cd-front em{font-style:normal;font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap;letter-spacing:-.02em}
 .cd-card.ok .cd-front{box-shadow:inset 0 0 0 3px var(--teal);background:var(--teal-wash)}
 .cd-fact{margin-top:10px;min-height:46px;background:#fff;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.4;box-shadow:0 2px 0 var(--line);text-align:center}
 .cd-fact b{color:var(--teal-d)}
