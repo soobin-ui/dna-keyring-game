@@ -518,13 +518,13 @@ svg.shot text.pen{font-family:var(--font-body);font-size:15px;font-weight:800;fi
 .ans-bar .btn{width:auto;flex:none;padding:11px 14px;font-size:15px;background:#FFC93B;color:#17323A;box-shadow:0 3px 0 #D9A41A}
 .peeking .g.sp{padding-bottom:86px}  /* 아래 안내 막대 자리만큼 비워서 그림이 가리지 않게 */
 
-/* 카드 뒤집기 시간 압박: 주황 → 빨강·흔들림·테두리 → 마지막 5초 깜빡임 */
-.cd .sp-status{transition:box-shadow .3s}
-.cd .sp-status.warn .sp-time b{color:#F28C28}
-.cd .sp-status.warn .sp-bar i{background:#F28C28}
-.cd .sp-status.low{box-shadow:0 0 0 3px rgba(239,83,80,.55),0 2px 0 var(--line)}
-.cd .sp-status.last{animation:cdAlarm 1s ease-in-out infinite;box-shadow:0 0 0 4px #EF5350}
-.cd .sp-status.last .sp-bar i{animation:cdBarPulse .5s ease-in-out infinite alternate}
+/* 시간 압박 (틀린그림·카드 공통): 주황 → 빨강·흔들림·테두리 → 마지막 5초 깜빡임 */
+.sp-status{transition:box-shadow .3s}
+.sp-status.warn .sp-time b{color:#F28C28}
+.sp-status.warn .sp-bar i{background:#F28C28}
+.sp-status.low{box-shadow:0 0 0 3px rgba(239,83,80,.55),0 2px 0 var(--line)}
+.sp-status.last{animation:cdAlarm 1s ease-in-out infinite;box-shadow:0 0 0 4px #EF5350}
+.sp-status.last .sp-bar i{animation:cdBarPulse .5s ease-in-out infinite alternate}
 @keyframes cdAlarm{0%,100%{background:#fff}50%{background:#FFDCD9}}
 @keyframes cdBarPulse{from{opacity:1}to{opacity:.45}}
-@media (prefers-reduced-motion:reduce){.cd .sp-status.last,.cd .sp-status.last .sp-bar i{animation:none}}
+@media (prefers-reduced-motion:reduce){.sp-status.last,.sp-status.last .sp-bar i{animation:none}}

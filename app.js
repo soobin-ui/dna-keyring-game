@@ -14,6 +14,13 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 let cleanups = [];
 const onCleanup = f => cleanups.push(f);
+// 시간 압박 (틀린그림·카드 공통): 60% 남으면 주황 → 35%(최소 8초) 남으면 빨강·흔들림·테두리 → 마지막 5초 깜빡임·매초 진동
+function timePressure(st, r, T, memo) {
+  const warn = r <= T * 0.6, low = r <= Math.max(8, T * 0.35), last = r <= 5;
+  if (low && !st.classList.contains('low')) buzz([60, 60, 60]);
+  if (last) { const sec = Math.ceil(r); if (sec !== memo.sec) { memo.sec = sec; buzz(40); } }
+  st.classList.toggle('warn', warn && !low); st.classList.toggle('low', low); st.classList.toggle('last', last);
+}
 // 화면이 바뀌면 이전 화면에서 예약해 둔 일은 실행하지 않음
 let gen = 0;
 const later = (fn, ms) => { const g = gen; return setTimeout(() => { if (g === gen) fn(); }, ms); };
@@ -29,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=48';
+const V = '?v=49';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -218,12 +225,10 @@ function playSpot() {
     const L = left();
     tm.textContent = fmt(Math.ceil(L));
     barEl.style.width = (L / TIME * 100).toFixed(2) + '%';
-    if (L <= 30 && !st.classList.contains('low')) buzz([60, 60, 60]);
-    st.classList.toggle('low', L <= 30);
-    st.classList.toggle('last', L <= 10);
+    timePressure(st, L, TIME, pmemo);
     if (L <= 0) finish(false);
   };
-  let iv = 0;
+  let iv = 0; const pmemo = {};
   onCleanup(() => clearInterval(iv));
   pauseWhenHidden(() => t0, v => { t0 = v; }, () => t0 && !done);
   const hintText = () => { hintBtn.hidden = LV.hints === 0; hintL.textContent = LV.hints === Infinity ? '힌트' : `힌트 ${LV.hints - hints}`; hintBtn.classList.toggle('off', hints >= LV.hints); };
@@ -726,11 +731,11 @@ function cardIcon(k) {
 }
 // 단계마다 카드가 2장씩 늘어나요: 8 → 10 → 12 → 14 → 16장
 const CARD_LV = [
-  { pairs: 4, cols: 4, time: 20, peek: 2000 },
-  { pairs: 5, cols: 4, time: 25, peek: 1800 },
-  { pairs: 6, cols: 4, time: 30, peek: 1600 },
-  { pairs: 7, cols: 4, time: 35, peek: 1400 },
-  { pairs: 8, cols: 4, time: 40, peek: 1200 },  // peek: 카드가 다 놓인 뒤 앞면을 보여 주는 시간(ms), 단계가 오를수록 짧게
+  { pairs: 4, cols: 4, time: 20, peek: 1200 },
+  { pairs: 5, cols: 4, time: 25, peek: 1000 },
+  { pairs: 6, cols: 4, time: 30, peek: 900 },
+  { pairs: 7, cols: 4, time: 35, peek: 800 },
+  { pairs: 8, cols: 4, time: 40, peek: 700 },  // peek: 카드가 다 놓인 뒤 앞면을 보여 주는 시간(ms), 단계가 오를수록 짧게
 ];
 const CD_BOARD_W = 358, CD_BOARD_H = 352, CD_GAP = 7;
 const cdBack = `<svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
@@ -760,7 +765,7 @@ function spreadDeal(cards, cols) {
 }
 function cards() {
   let lv = 0, cleared = 0, moves = 0, pairsTotal = 0;
-  let deck = [], open = [], matched = new Set(), t0 = 0, playing = false, lock = false, iv = 0, peekT = 0, lastSec = 0;
+  let deck = [], open = [], matched = new Set(), t0 = 0, playing = false, lock = false, iv = 0, peekT = 0; const pmemo = {};
   onCleanup(() => { clearInterval(iv); clearTimeout(peekT); });
   pauseWhenHidden(() => t0, v => { t0 = v; }, () => playing);
   const N = CARD_LV.length;
@@ -791,12 +796,7 @@ function cards() {
     const r = left();
     $('cdT').textContent = fmt(Math.ceil(r));
     $('cdBar').style.width = (r / L().time * 100).toFixed(2) + '%';
-    const st = $('cdStatus'), T = L().time;
-    // 시간이 흐를수록 단계적으로 압박: 60% 남으면 주황 → 35%(최소 8초) 남으면 빨강·흔들림 → 마지막 5초 깜빡임·매초 진동
-    const warn = r <= T * 0.6, low = r <= Math.max(8, T * 0.35), last = r <= 5;
-    if (low && !st.classList.contains('low')) buzz([60, 60, 60]);
-    if (last) { const sec = Math.ceil(r); if (sec !== lastSec) { lastSec = sec; buzz(40); } }
-    st.classList.toggle('warn', warn && !low); st.classList.toggle('low', low); st.classList.toggle('last', last);
+    timePressure($('cdStatus'), r, L().time, pmemo);
     if (r <= 0) fail();
   };
   const deal = () => {
@@ -808,7 +808,7 @@ function cards() {
     const w = Math.floor(Math.min(112, (CD_BOARD_W - CD_GAP * (cols - 1)) / cols, (CD_BOARD_H - CD_GAP * (rows - 1)) / rows / 1.05));
     $('cdLv').textContent = lv + 1; $('cdN').textContent = 0; $('cdNt').textContent = `/ ${pairs}`;
     $('cdT').textContent = fmt(L().time); $('cdBar').style.width = '100%';
-    $('cdStatus').classList.remove('warn', 'low', 'last'); lastSec = 0;
+    $('cdStatus').classList.remove('warn', 'low', 'last'); pmemo.sec = 0;
     const g = $('cdGrid');
     g.style.setProperty('--cw', w + 'px'); g.style.width = (cols * w + CD_GAP * (cols - 1)) + 'px';
     g.innerHTML = deck.map((c, i) => `<button class="cd-card up deal" style="animation-delay:${i * 45}ms" data-i="${i}" aria-label="카드 ${i + 1}">
