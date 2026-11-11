@@ -29,7 +29,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=40';
+const V = '?v=41';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -714,11 +714,11 @@ function cardIcon(k) {
 }
 // 단계마다 카드가 2장씩 늘어나요: 8 → 10 → 12 → 14 → 16장
 const CARD_LV = [
-  { pairs: 4, cols: 4, time: 30 },
-  { pairs: 5, cols: 4, time: 38 },
-  { pairs: 6, cols: 4, time: 46 },
-  { pairs: 7, cols: 4, time: 55 },
-  { pairs: 8, cols: 4, time: 65 },
+  { pairs: 4, cols: 4, time: 30, peek: 2000 },
+  { pairs: 5, cols: 4, time: 38, peek: 1800 },
+  { pairs: 6, cols: 4, time: 46, peek: 1600 },
+  { pairs: 7, cols: 4, time: 55, peek: 1400 },
+  { pairs: 8, cols: 4, time: 65, peek: 1200 },  // peek: 카드가 다 놓인 뒤 앞면을 보여 주는 시간(ms), 단계가 오를수록 짧게
 ];
 const CD_BOARD_W = 358, CD_BOARD_H = 352, CD_GAP = 7;
 const cdBack = `<svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
@@ -807,7 +807,7 @@ function cards() {
       els.forEach(el => el.classList.remove('up'));
       $('cdFact').textContent = '같은 그림 2장을 찾아보세요';
       peekT = setTimeout(() => { lock = false; playing = true; t0 = performance.now(); }, 350);
-    }, deck.length * 45 + 1100 + pairs * 300);
+    }, (deck.length - 1) * 45 + 320 + L().peek);
   };
   const flip = (el, els) => {
     if (!playing || lock) return;
