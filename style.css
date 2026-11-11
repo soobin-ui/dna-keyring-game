@@ -480,3 +480,15 @@ img,svg.shot{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-sele
     background:linear-gradient(180deg,#BFE6D1,#0F6F66);color:#17323A;font-family:var(--font-body);font-size:20px;font-weight:700;text-align:center}
   .rotate b{color:#fff;background:#17323A;padding:0 8px;border-radius:8px}
 }
+
+/* 틀린그림 난이도 고르기 */
+.sp-pick{font-size:15px;font-weight:700;color:var(--ink-2);margin:-4px 0 8px}
+.sp-lv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sp-lv .sp-go{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;white-space:normal}
+.sp-lv .sp-go b{font-size:20px;line-height:1.2}
+.sp-lv .sp-go small{font-size:12.5px;font-weight:700;line-height:1.3;opacity:.85}
+.sp-lv .sp-go-hard{background:#17323A;color:#fff;box-shadow:0 4px 0 #0B1A1F}
+.sp-lv .sp-go-hard::after{background:linear-gradient(100deg,rgba(255,255,255,0) 0,rgba(255,255,255,.28) 50%,rgba(255,255,255,0) 100%)}
+.sp-hint.off{opacity:.4;pointer-events:none}
+.sp-hint[hidden]{display:none}
+svg.shot text.pen{font-family:var(--font-body);font-size:15px;font-weight:800;fill:#EF5350;stroke:#fff;stroke-width:3px;paint-order:stroke}

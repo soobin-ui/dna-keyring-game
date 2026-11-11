@@ -29,9 +29,9 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=38';
+const V = '?v=39';
 const GAMES = [
-  { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 7개 찾기', time: '약 5–7분' },
+  { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
   { id: 'ox', code: 'EXP-03', icon: 'icon_ox', bg: '#FFE6E5', title: 'DNA 상식 OX 퀴즈', desc: '5문제를 풀고 짧은 해설 확인하기', time: '약 3–5분' },
 ];
@@ -163,29 +163,46 @@ function done() {
 
 /* ================= 게임 1: 틀린그림찾기 ================= */
 // 좌표는 400×300 기준 (그림 1200×900)
-const DIFFS = [
-  { x: 46, y: 97, r: 16, name: '시계 7시 눈금' },
-  { x: 366, y: 45, r: 16, name: '오른쪽 병 코르크' },
-  { x: 275, y: 126, r: 15, name: '선반 왼쪽 받침대' },
-  { x: 172, y: 216, r: 17, name: '파란 시험관 물 높이' },
-  { x: 234, y: 224, r: 24, name: '비커 물 높이' },
-  { x: 363, y: 163, r: 20, name: '화분 맨 위 잎' },
-  { x: 201, y: 284, r: 22, name: '가운데 서랍 손잡이' },
-];
+// 쉬움: 지금까지 쓰던 실험실 그림 7곳 / 어려움: 물건이 많은 실험실 그림 12곳, 힌트 없음, 틀리게 누르면 3초 감소
+const SPOT_LV = {
+  easy: { label: '쉬움', img: 'spot', time: 120, hints: Infinity, diffs: [
+    { x: 46, y: 97, r: 16, name: '시계 7시 눈금' },
+    { x: 366, y: 45, r: 16, name: '오른쪽 병 코르크' },
+    { x: 275, y: 126, r: 15, name: '선반 왼쪽 받침대' },
+    { x: 172, y: 216, r: 17, name: '파란 시험관 물 높이' },
+    { x: 234, y: 224, r: 24, name: '비커 물 높이' },
+    { x: 363, y: 163, r: 20, name: '화분 맨 위 잎' },
+    { x: 201, y: 284, r: 22, name: '가운데 서랍 손잡이' },
+  ] },
+  hard: { label: '어려움', img: 'spot2', time: 120, hints: 0, penalty: 3, diffs: [
+    { x: 88, y: 43, r: 18, name: '창밖 구름 모양(좌우)' },
+    { x: 250, y: 29, r: 11, name: '공구판 오른쪽 위 나사' },
+    { x: 229, y: 55, r: 17, name: '스포이트 보라·분홍 색' },
+    { x: 333, y: 68, r: 13, name: '선반 파란 병 물 높이' },
+    { x: 218, y: 154, r: 11, name: '보라 시험관 물 높이' },
+    { x: 109, y: 151, r: 13, name: '초록 펜 → 파란 펜' },
+    { x: 211, y: 64, r: 9, name: '자 눈금 하나' },
+    { x: 272, y: 163, r: 13, name: '공구함 잠금쇠' },
+    { x: 249, y: 253, r: 15, name: '세 번째 서랍 손잡이' },
+    { x: 288, y: 183, r: 22, name: '보안경 테 색(남색)' },
+    { x: 186, y: 145, r: 11, name: '노란 시험관 뚜껑 색' },
+    { x: 224, y: 95, r: 9, name: '공구판 구멍 하나' },
+  ] },
+};
 const shotSVG = B => `<svg class="shot" viewBox="0 0 400 300" role="img" aria-label="실험실 그림 ${B ? 'B' : 'A'}">
   <image href="img/spot_${B ? 'b' : 'a'}.jpg${V}" width="400" height="300"/><g class="marks"></g></svg>`;
 function spot() { playSpot(); }
-const SPOT_TIME = 120; // 제한 시간 2분
 function playSpot() {
   const found = new Set();
-  let hints = 0, done = false;
-  let t0 = 0;
+  let hints = 0, done = false, t0 = 0, LV = null, DIFFS = [], TIME = 120;
+  // 두 난이도 그림을 미리 받아 둠 (고르자마자 바로 보이게)
+  ['spot', 'spot2'].forEach(n => ['a', 'b'].forEach(k => { const im = new Image(); im.src = `img/${n}_${k}.jpg${V}`; }));
   app.innerHTML = bar('틀린그림찾기') + `
   <main class="g sp" data-fit>
     <div class="sp-status" id="spStatus">
-      <div class="sp-found"><span>찾은 곳</span><b id="spN">0</b><i>/ 7</i></div>
-      <div class="sp-time"><span>남은 시간</span><b id="tm">${fmt(SPOT_TIME)}</b></div>
-      <button class="sp-hint" id="hint" aria-label="힌트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>힌트</button>
+      <div class="sp-found"><span>찾은 곳</span><b id="spN">0</b><i id="spT">/ 7</i></div>
+      <div class="sp-time"><span>남은 시간</span><b id="tm">2:00</b></div>
+      <button class="sp-hint" id="hint" aria-label="힌트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span id="hintL">힌트</span></button>
       <div class="sp-bar"><i id="spBar"></i></div>
     </div>
     <figure class="pic"><figcaption>그림 A</figcaption>${shotSVG(false)}</figure>
@@ -194,23 +211,28 @@ function playSpot() {
   <div class="sp-ov" id="spOv">
     <div class="sp-card" role="dialog" aria-modal="true" aria-label="틀린그림찾기 방법">
       <img src="img/icon_spot.png${V}" alt="" width="72" height="72">
-      <h2>다른 곳 <em>7개</em> 찾기</h2>
+      <h2>다른 곳 <em>찾기</em></h2>
       <ol class="sp-how">
-        <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/><text x="9" y="13" font-size="0">A</text></svg><span>두 그림<br>비교</span></li>
+        <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/></svg><span>두 그림<br>비교</span></li>
         <li><svg viewBox="0 0 56 40"><circle cx="28" cy="20" r="12" fill="none" stroke="#EF5350" stroke-width="3.2"/><path d="M28 2v7M28 31v7M10 20h7M39 20h7" stroke="#EF5350" stroke-width="3.2" stroke-linecap="round"/></svg><span>다른 곳<br>터치</span></li>
         <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>2분</b><br>안에</span></li>
       </ol>
-      <button class="btn sp-go" id="spGo">시작하기</button>
+      <p class="sp-pick">난이도를 골라 주세요</p>
+      <div class="sp-lv">
+        <button class="btn sp-go" id="spGo" data-lv="easy"><b>쉬움</b><small>다른 곳 7개<br>힌트 있음</small></button>
+        <button class="btn sp-go sp-go-hard" id="spGoHard" data-lv="hard"><b>어려움</b><small>다른 곳 12개<br>힌트 없음 · 틀리면 -3초</small></button>
+      </div>
     </div>
   </div>`;
   const svgs = [...app.querySelectorAll('svg.shot')];
   const tm = document.getElementById('tm'), barEl = document.getElementById('spBar'), st = document.getElementById('spStatus');
-  const left = () => t0 ? Math.max(0, SPOT_TIME - (performance.now() - t0) / 1000) : SPOT_TIME;
+  const hintBtn = document.getElementById('hint'), hintL = document.getElementById('hintL');
+  const left = () => t0 ? Math.max(0, TIME - (performance.now() - t0) / 1000) : TIME;
   const tick = () => {
     if (done) return;
     const L = left();
     tm.textContent = fmt(Math.ceil(L));
-    barEl.style.width = (L / SPOT_TIME * 100).toFixed(2) + '%';
+    barEl.style.width = (L / TIME * 100).toFixed(2) + '%';
     if (L <= 30 && !st.classList.contains('low')) buzz([60, 60, 60]);
     st.classList.toggle('low', L <= 30);
     st.classList.toggle('last', L <= 10);
@@ -219,11 +241,17 @@ function playSpot() {
   let iv = 0;
   onCleanup(() => clearInterval(iv));
   pauseWhenHidden(() => t0, v => { t0 = v; }, () => t0 && !done);
-  document.getElementById('spGo').onclick = () => {
+  const hintText = () => { hintBtn.hidden = LV.hints === 0; hintL.textContent = LV.hints === Infinity ? '힌트' : `힌트 ${LV.hints - hints}`; hintBtn.classList.toggle('off', hints >= LV.hints); };
+  const start = key => {
+    LV = SPOT_LV[key]; DIFFS = LV.diffs; TIME = LV.time;
+    svgs.forEach((s, i) => s.querySelector('image').setAttribute('href', `img/${LV.img}_${i ? 'b' : 'a'}.jpg${V}`));
+    document.getElementById('spT').textContent = `/ ${DIFFS.length}`;
+    tm.textContent = fmt(TIME); hintText();
     document.getElementById('spOv').remove();
     t0 = performance.now();
     iv = setInterval(tick, 200);
   };
+  app.querySelectorAll('#spOv [data-lv]').forEach(b => { b.onclick = () => start(b.dataset.lv); });
   const add = (svg, html, ms) => {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.innerHTML = html; svg.querySelector('.marks').appendChild(g);
@@ -235,7 +263,15 @@ function playSpot() {
     const x = (e.clientX / f - r.left) / r.width * 400, y = (e.clientY / f - r.top) / r.height * 300;
     let hit = -1, best = 1e9;
     DIFFS.forEach((d, i) => { const dist = Math.hypot(d.x - x, d.y - y); if (dist <= d.r + 8 && dist < best) { best = dist; hit = i; } });
-    if (hit < 0) { add(svg, `<g class="miss"><path d="M${x - 8} ${y - 8}L${x + 8} ${y + 8}M${x + 8} ${y - 8}L${x - 8} ${y + 8}"/></g>`, 700); buzz(12); return; }
+    if (hit < 0) {
+      add(svg, `<g class="miss"><path d="M${x - 8} ${y - 8}L${x + 8} ${y + 8}M${x + 8} ${y - 8}L${x - 8} ${y + 8}"/></g>`, 700); buzz(12);
+      if (LV.penalty) {   // 어려움: 틀리게 누르면 남은 시간 3초 감소
+        t0 -= LV.penalty * 1000;
+        add(svg, `<text class="pen" x="${Math.min(372, Math.max(28, x))}" y="${Math.max(22, y - 14)}" text-anchor="middle">-${LV.penalty}초</text>`, 900);
+        tick();
+      }
+      return;
+    }
     if (found.has(hit)) return;
     found.add(hit); buzz(30);
     const d = DIFFS[hit], k = d.r + 7;
@@ -247,26 +283,28 @@ function playSpot() {
     n.textContent = found.size; n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump');
     if (found.size === DIFFS.length) finish(true);
   }));
-  document.getElementById('hint').addEventListener('click', () => {
+  hintBtn.addEventListener('click', () => {
     const i = DIFFS.findIndex((d, k) => !found.has(k));
-    if (i < 0 || done || !t0) return;
-    hints++;
+    if (i < 0 || done || !t0 || hints >= LV.hints) return;
+    hints++; hintText();
     const d = DIFFS[i];
     svgs.forEach(s => add(s, `<circle class="hintc hint-${i}" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`, 2600));
   });
   function finish(all) {
     if (done) return;
     done = true;
-    const L = left(), n = found.size;
+    const L = left(), n = found.size, total = DIFFS.length, hard = LV === SPOT_LV.hard;
     tm.textContent = fmt(Math.ceil(L));
     // 못 찾은 곳은 노란 점선으로 알려 줌
     DIFFS.forEach((d, i) => { if (!found.has(i)) svgs.forEach(s => add(s, `<circle class="missed" cx="${d.x}" cy="${d.y}" r="${d.r + 2}"/>`)); });
-    const best = store.spot && typeof store.spot.best === 'number' && store.spot.best <= 7 ? Math.max(store.spot.best, n) : n;
-    store.spot = { best }; save(); markDone('spot', `${n}/7`);
+    const key = hard ? 'spotHard' : 'spot';
+    const prev = store[key] && typeof store[key].best === 'number' && store[key].best <= total ? store[key].best : 0;
+    const best = Math.max(prev, n);
+    store[key] = { best }; save(); markDone('spot', `${n}/${total}`);
     later(() => report({
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
-      head: all ? `다른 곳 7개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
-      rows: [['찾은 곳', `${n} / 7`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(SPOT_TIME)], ['힌트', `${hints}회`], ['내 최고 기록', `${best} / 7`]],
+      head: all ? `다른 곳 ${total}개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
+      rows: [['난이도', LV.label], ['찾은 곳', `${n} / ${total}`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(TIME)], ['힌트', `${hints}회`], [`내 최고 기록(${LV.label})`, `${best} / ${total}`]],
       sub: all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요.',
       noteTitle: '게임 속 DNA 이야기',
       note: '비슷해 보이는 두 그림에서 작은 차이를 찾아보았나요?|과학자들도 DNA를 이루는 글자들의 순서인 ‘염기서열’을 비교해 차이를 찾아요. 사람들의 DNA는 대부분 비슷하지만 조금씩 다른 부분이 있고, 그중 일부는 눈동자 색 같은 우리 몸의 특징에 영향을 줄 수 있어요.',
@@ -658,11 +696,11 @@ function cardIcon(k) {
 }
 // 단계마다 카드가 2장씩 늘어나요: 8 → 10 → 12 → 14 → 16장
 const CARD_LV = [
-  { pairs: 4, cols: 4, time: 45 },
-  { pairs: 5, cols: 4, time: 55 },
-  { pairs: 6, cols: 4, time: 70 },
-  { pairs: 7, cols: 4, time: 85 },
-  { pairs: 8, cols: 4, time: 100 },
+  { pairs: 4, cols: 4, time: 30 },
+  { pairs: 5, cols: 4, time: 38 },
+  { pairs: 6, cols: 4, time: 46 },
+  { pairs: 7, cols: 4, time: 55 },
+  { pairs: 8, cols: 4, time: 65 },
 ];
 const CD_BOARD_W = 358, CD_BOARD_H = 352, CD_GAP = 7;
 const cdBack = `<svg viewBox="0 0 40 40"><path d="M14 6c0 9 12 9 12 14s-12 5-12 14M26 6c0 9-12 9-12 14s12 5 12 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
