@@ -492,3 +492,18 @@ img,svg.shot{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-sele
 .sp-hint.off{opacity:.4;pointer-events:none}
 .sp-hint[hidden]{display:none}
 svg.shot text.pen{font-family:var(--font-body);font-size:15px;font-weight:800;fill:#EF5350;stroke:#fff;stroke-width:3px;paint-order:stroke}
+
+/* 틀린그림: 1단계 난이도 카드 → 2단계 방법 안내 */
+.sp-card-pick h2{margin-bottom:14px}
+.sp-lv .sp-lvc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 8px 12px;border-radius:18px;background:#FFF7DD;
+  box-shadow:inset 0 0 0 3px #FFC93B,0 4px 0 #D9A41A;text-align:center;transition:transform .1s}
+.sp-lv .sp-lvc:active{transform:translateY(2px)}
+.sp-lv .sp-lvc.hard{background:#E8EEF0;box-shadow:inset 0 0 0 3px #17323A,0 4px 0 #0B1A1F}
+.sp-lvc-pic{display:block;width:100%;aspect-ratio:4/3;border-radius:10px;background-size:cover;background-position:center;margin-bottom:6px}
+.sp-lvc b{font-family:var(--font-head);font-size:21px;font-weight:800;line-height:1.2;color:#17323A}
+.sp-lvc small{font-size:13.5px;font-weight:700;line-height:1.35;color:var(--ink-2)}
+.sp-lv-tag{display:inline-block;font-size:14px;font-weight:800;padding:3px 12px;border-radius:99px;background:#FFC93B;color:#17323A;margin-bottom:6px}
+.sp-lv-tag.hard{background:#17323A;color:#fff}
+.sp-rule{font-size:14.5px;font-weight:700;color:var(--ink-2);margin:-6px 0 14px}
+.sp-rule b{color:var(--coral)}
+.sp-back{display:block;margin:10px auto 0;font-size:14.5px;font-weight:700;color:var(--ink-2);padding:6px}

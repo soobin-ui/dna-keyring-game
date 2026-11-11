@@ -29,7 +29,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=39';
+const V = '?v=40';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -208,22 +208,7 @@ function playSpot() {
     <figure class="pic"><figcaption>그림 A</figcaption>${shotSVG(false)}</figure>
     <figure class="pic"><figcaption>그림 B</figcaption>${shotSVG(true)}</figure>
   </main>
-  <div class="sp-ov" id="spOv">
-    <div class="sp-card" role="dialog" aria-modal="true" aria-label="틀린그림찾기 방법">
-      <img src="img/icon_spot.png${V}" alt="" width="72" height="72">
-      <h2>다른 곳 <em>찾기</em></h2>
-      <ol class="sp-how">
-        <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/></svg><span>두 그림<br>비교</span></li>
-        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="20" r="12" fill="none" stroke="#EF5350" stroke-width="3.2"/><path d="M28 2v7M28 31v7M10 20h7M39 20h7" stroke="#EF5350" stroke-width="3.2" stroke-linecap="round"/></svg><span>다른 곳<br>터치</span></li>
-        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>2분</b><br>안에</span></li>
-      </ol>
-      <p class="sp-pick">난이도를 골라 주세요</p>
-      <div class="sp-lv">
-        <button class="btn sp-go" id="spGo" data-lv="easy"><b>쉬움</b><small>다른 곳 7개<br>힌트 있음</small></button>
-        <button class="btn sp-go sp-go-hard" id="spGoHard" data-lv="hard"><b>어려움</b><small>다른 곳 12개<br>힌트 없음 · 틀리면 -3초</small></button>
-      </div>
-    </div>
-  </div>`;
+  <div class="sp-ov" id="spOv"><div class="sp-card" role="dialog" aria-modal="true" aria-label="틀린그림찾기" id="spCard"></div></div>`;
   const svgs = [...app.querySelectorAll('svg.shot')];
   const tm = document.getElementById('tm'), barEl = document.getElementById('spBar'), st = document.getElementById('spStatus');
   const hintBtn = document.getElementById('hint'), hintL = document.getElementById('hintL');
@@ -242,16 +227,49 @@ function playSpot() {
   onCleanup(() => clearInterval(iv));
   pauseWhenHidden(() => t0, v => { t0 = v; }, () => t0 && !done);
   const hintText = () => { hintBtn.hidden = LV.hints === 0; hintL.textContent = LV.hints === Infinity ? '힌트' : `힌트 ${LV.hints - hints}`; hintBtn.classList.toggle('off', hints >= LV.hints); };
-  const start = key => {
+  // 1단계: 쉬워요·어려워요 카드 → 2단계: 고른 난이도의 방법 안내 → 시작하기
+  const card = document.getElementById('spCard');
+  const HOW = (n, extra) => `<ol class="sp-how">
+        <li><svg viewBox="0 0 56 40"><rect x="2" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><rect x="32" y="4" width="22" height="32" rx="5" fill="#E2F1FF" stroke="#17323A" stroke-width="2.4"/><circle cx="13" cy="15" r="4" fill="#EF5350"/><rect x="8" y="24" width="10" height="5" rx="2" fill="#34B36B"/><rect x="38" y="24" width="10" height="5" rx="2" fill="#34B36B"/></svg><span>두 그림<br>비교</span></li>
+        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="20" r="12" fill="none" stroke="#EF5350" stroke-width="3.2"/><path d="M28 2v7M28 31v7M10 20h7M39 20h7" stroke="#EF5350" stroke-width="3.2" stroke-linecap="round"/></svg><span>다른 곳<br>터치</span></li>
+        <li><svg viewBox="0 0 56 40"><circle cx="28" cy="22" r="14" fill="#fff" stroke="#17323A" stroke-width="2.6"/><path d="M28 22V13M28 22l6 4" stroke="#0E9F8E" stroke-width="3" stroke-linecap="round"/><path d="M24 4h8M28 4v4" stroke="#17323A" stroke-width="2.6" stroke-linecap="round"/></svg><span><b>2분</b><br>안에</span></li>
+      </ol>${extra}`;
+  const setLevel = key => {
     LV = SPOT_LV[key]; DIFFS = LV.diffs; TIME = LV.time;
     svgs.forEach((s, i) => s.querySelector('image').setAttribute('href', `img/${LV.img}_${i ? 'b' : 'a'}.jpg${V}`));
     document.getElementById('spT').textContent = `/ ${DIFFS.length}`;
     tm.textContent = fmt(TIME); hintText();
+  };
+  const showPick = () => {
+    card.className = 'sp-card sp-card-pick';
+    card.innerHTML = `<img src="img/icon_spot.png${V}" alt="" width="72" height="72">
+      <h2>난이도를 <em>골라</em> 주세요</h2>
+      <div class="sp-lv">
+        <button class="sp-lvc" data-lv="easy"><span class="sp-lvc-pic" style="background-image:url(img/spot_a.jpg${V})"></span><b>쉬워요</b><small>다른 곳 7개<br>힌트 있어요</small></button>
+        <button class="sp-lvc hard" data-lv="hard"><span class="sp-lvc-pic" style="background-image:url(img/spot2_a.jpg${V})"></span><b>어려워요</b><small>다른 곳 12개<br>힌트 없어요</small></button>
+      </div>`;
+    card.querySelectorAll('[data-lv]').forEach(b => { b.onclick = () => showHow(b.dataset.lv); });
+    fit();
+  };
+  const showHow = key => {
+    setLevel(key);
+    const hard = key === 'hard';
+    card.className = 'sp-card';
+    card.innerHTML = `<span class="sp-lv-tag${hard ? ' hard' : ''}">${hard ? '어려워요' : '쉬워요'}</span>
+      <h2>다른 곳 <em>${DIFFS.length}개</em> 찾기</h2>
+      ${HOW(DIFFS.length, hard ? '<p class="sp-rule"><b>힌트 없음</b> · 틀리게 누르면 <b>3초</b>씩 줄어요</p>' : '<p class="sp-rule">막히면 <b>힌트</b>를 눌러 보세요</p>')}
+      <button class="btn sp-go" id="spGo">시작하기</button>
+      <button class="sp-back" id="spBack">← 난이도 다시 고르기</button>`;
+    document.getElementById('spGo').onclick = start;
+    document.getElementById('spBack').onclick = showPick;
+    fit();
+  };
+  const start = () => {
     document.getElementById('spOv').remove();
     t0 = performance.now();
     iv = setInterval(tick, 200);
   };
-  app.querySelectorAll('#spOv [data-lv]').forEach(b => { b.onclick = () => start(b.dataset.lv); });
+  setLevel('easy'); showPick();
   const add = (svg, html, ms) => {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.innerHTML = html; svg.querySelector('.marks').appendChild(g);
