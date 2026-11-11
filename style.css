@@ -528,3 +528,8 @@ svg.shot text.pen{font-family:var(--font-body);font-size:15px;font-weight:800;fi
 @keyframes cdAlarm{0%,100%{background:#fff}50%{background:#FFDCD9}}
 @keyframes cdBarPulse{from{opacity:1}to{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.sp-status.last,.sp-status.last .sp-bar i{animation:none}}
+
+/* 처음부터 다시 하기 (첫 화면, 확인 창) */
+.home .reset{color:#DDF2EC;font-size:14px;margin-top:10px}
+.rs-p{font-size:15.5px;color:var(--ink-2);line-height:1.5;margin:8px 0 16px}
+.rs-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}

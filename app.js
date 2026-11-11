@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=50';
+const V = '?v=51';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -137,12 +137,22 @@ function home() {
   </ol>
   <div class="cta">${all
     ? `<button class="btn" data-go="#/done">최종 결과 보기</button><button class="reset" id="reset">처음부터 다시 하기</button>`
-    : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>`}</div>
+    : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>${n > 0 ? '<button class="reset" id="reset">처음부터 다시 하기</button>' : ''}`}</div>
   <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
   </div></div>`;
   keyring();
   const rs = document.getElementById('reset');
-  if (rs) rs.onclick = () => { run = {}; saveRun(); try { sessionStorage.removeItem(KR_SHOWN); } catch (e) {} home(); };
+  // 처음부터 다시 하기: 실수로 누르지 않게 한 번 더 물어봄
+  if (rs) rs.onclick = () => {
+    const ov = document.createElement('div');
+    ov.className = 'sp-ov rs-ov';
+    ov.innerHTML = `<div class="sp-card" role="dialog" aria-modal="true"><h2>처음부터 <em>다시</em> 할까요?</h2>
+      <p class="rs-p">지금까지 한 실험 기록이 모두 지워지고<br>1번 실험부터 다시 시작해요.</p>
+      <div class="rs-btns"><button class="btn line" id="rsNo">취소</button><button class="btn sp-go" id="rsYes">처음부터</button></div></div>`;
+    app.appendChild(ov);
+    ov.querySelector('#rsNo').onclick = () => ov.remove();
+    ov.querySelector('#rsYes').onclick = () => { run = {}; saveRun(); try { sessionStorage.removeItem(KR_SHOWN); } catch (e) {} home(); fit(); };
+  };
 }
 
 /* ================= 최종 결과 ================= */
