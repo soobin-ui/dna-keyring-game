@@ -29,7 +29,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=41';
+const V = '?v=43';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -56,7 +56,7 @@ function sheet(html) {
   requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('show')));
   return d;
 }
-function report({ id, code, icon, head, sub, rows, note, noteTitle = '결과 해석', again }) {
+function report({ id, code, icon, head, sub, rows, note, noteTitle = '결과 해석', again, extra = '' }) {
   const i = GAMES.findIndex(g => g.id === id), nx = GAMES[i + 1];
   return sheet(`<div class="slip" role="dialog" aria-modal="true">
     <img class="slip-art" src="img/${icon}.png${V}" alt="">
@@ -64,7 +64,7 @@ function report({ id, code, icon, head, sub, rows, note, noteTitle = '결과 해
     <h3 class="slip-h">${head}</h3>${sub ? `<p class="slip-sub">${sub}</p>` : ''}
     <ul class="slip-rows">${rows.map(([k, v]) => `<li><span>${k}</span><i></i><b>${v}</b></li>`).join('')}</ul>
     <div class="slip-note"><span>${noteTitle}</span>${note.split('|').map(t => `<p>${t}</p>`).join('')}</div>
-    <div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="${nx ? '#/' + nx.id : '#/done'}">${nx ? '다음 실험 →' : '최종 결과 보기'}</button></div>
+    ${extra}<div class="slip-btns"><button class="btn line" data-go="${again}">다시 하기</button><button class="btn" data-go="${nx ? '#/' + nx.id : '#/done'}">${nx ? '다음 실험 →' : '최종 결과 보기'}</button></div>
   </div>`);
 }
 
@@ -175,7 +175,7 @@ const SPOT_LV = {
     { x: 201, y: 284, r: 22, name: '가운데 서랍 손잡이' },
   ] },
   hard: { label: '어려움', img: 'spot2', time: 120, hints: 0, penalty: 3, diffs: [
-    { x: 88, y: 43, r: 18, name: '창밖 구름 모양(좌우)' },
+    { x: 88, y: 43, r: 18, name: '창밖 구름 없어짐' },
     { x: 250, y: 29, r: 11, name: '공구판 오른쪽 위 나사' },
     { x: 229, y: 55, r: 17, name: '스포이트 보라·분홍 색' },
     { x: 333, y: 68, r: 13, name: '선반 파란 병 물 높이' },
@@ -184,7 +184,7 @@ const SPOT_LV = {
     { x: 211, y: 64, r: 9, name: '자 눈금 하나' },
     { x: 272, y: 163, r: 13, name: '공구함 잠금쇠' },
     { x: 249, y: 253, r: 15, name: '세 번째 서랍 손잡이' },
-    { x: 288, y: 183, r: 22, name: '보안경 테 색(남색)' },
+    { x: 288, y: 183, r: 22, name: '보안경 테 색(노랑)' },
     { x: 186, y: 145, r: 11, name: '노란 시험관 뚜껑 색' },
     { x: 224, y: 95, r: 9, name: '공구판 구멍 하나' },
   ] },
@@ -319,14 +319,26 @@ function playSpot() {
     const prev = store[key] && typeof store[key].best === 'number' && store[key].best <= total ? store[key].best : 0;
     const best = Math.max(prev, n);
     store[key] = { best }; save(); markDone('spot', `${n}/${total}`);
-    later(() => report({
+    later(() => { const sh = report({
       id: 'spot', code: 'EXP-01', icon: 'icon_spot', again: '#/spot',
+      extra: all ? '' : `<button class="slip-peek" id="peekAns">못 찾은 곳 ${total - n}개 보기</button>`,
       head: all ? `다른 곳 ${total}개를 <span>모두</span> 찾았어요!` : `시간 종료! <span>${n}개</span> 찾았어요`,
       rows: [['난이도', LV.label], ['찾은 곳', `${n} / ${total}`], all ? ['남은 시간', fmt(Math.ceil(L))] : ['제한 시간', fmt(TIME)], ['힌트', `${hints}회`], [`내 최고 기록(${LV.label})`, `${best} / ${total}`]],
-      sub: all ? '' : '못 찾은 곳은 그림에 노란 점선으로 표시했어요.',
+      sub: all ? '' : '못 찾은 곳은 아래 버튼을 눌러 그림에서 확인해 보세요.',
       noteTitle: '게임 속 DNA 이야기',
       note: '비슷해 보이는 두 그림에서 작은 차이를 찾아보았나요?|과학자들도 DNA를 이루는 글자들의 순서인 ‘염기서열’을 비교해 차이를 찾아요. 사람들의 DNA는 대부분 비슷하지만 조금씩 다른 부분이 있고, 그중 일부는 눈동자 색 같은 우리 몸의 특징에 영향을 줄 수 있어요.',
-    }), all ? 700 : 1600);
+    });
+    // 못 찾은 곳 보기: 결과 창을 내리고 그림의 노란 동그라미를 보여 줌 → 아래 막대로 결과 창 다시 열기
+    const pk = sh.querySelector('#peekAns');
+    if (pk) pk.onclick = () => {
+      sh.classList.add('peek'); app.classList.add('peeking'); fit();
+      const barEl2 = document.createElement('div');
+      barEl2.className = 'ans-bar';
+      barEl2.innerHTML = `<span><i></i>노란 동그라미가 못 찾은 곳이에요</span><button class="btn">결과 다시 보기</button>`;
+      app.appendChild(barEl2);
+      barEl2.querySelector('button').onclick = () => { barEl2.remove(); sh.classList.remove('peek'); app.classList.remove('peeking'); fit(); };
+    };
+    }, all ? 700 : 1600);
   }
 }
 
@@ -886,7 +898,7 @@ function fit() {
   if (home) z = Math.min(z, h / hOf(home.querySelector('.home-inner')));
   else if (app.querySelector('[data-fit]')) z = Math.min(z, h / hOf(app));
   // 결과 창이 떠 있으면 창 전체(아래 버튼까지)가 한 화면에 들어오게
-  const slip = app.querySelector('.overlay .slip');
+  const slip = app.querySelector('.overlay:not(.peek) .slip');
   if (slip) { slip.style.maxHeight = 'none'; z = Math.min(z, h * 0.96 / hOf(slip)); }
   z = Math.min(z, MAX_Z);
   app.style.zoom = z;
@@ -929,6 +941,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 /* ================= 화면 전환 ================= */
 function route() {
   gen++;
+  app.classList.remove('peeking');
   cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = [];
   window.scrollTo(0, 0);
   const h = location.hash.replace(/^#\/?/, '');
