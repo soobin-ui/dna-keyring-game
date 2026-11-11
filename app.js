@@ -29,7 +29,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=43';
+const V = '?v=44';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -181,7 +181,7 @@ const SPOT_LV = {
     { x: 333, y: 68, r: 13, name: '선반 파란 병 물 높이' },
     { x: 218, y: 154, r: 11, name: '보라 시험관 물 높이' },
     { x: 109, y: 151, r: 13, name: '초록 펜 → 파란 펜' },
-    { x: 211, y: 64, r: 9, name: '자 눈금 하나' },
+    { x: 373, y: 165, r: 16, name: '장갑 색(분홍)' },
     { x: 272, y: 163, r: 13, name: '공구함 잠금쇠' },
     { x: 249, y: 253, r: 15, name: '세 번째 서랍 손잡이' },
     { x: 288, y: 183, r: 22, name: '보안경 테 색(노랑)' },
