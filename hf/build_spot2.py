@@ -101,21 +101,43 @@ DIFFS = []  # (이름, 원본 x, 원본 y, 반지름 원본px)
 def make():
     a = ORIG.copy()
     b = ORIG.copy()
-    # 1) 창밖 구름 개수 (사용자 제안): 그림 A·B 모두 창문 네 칸에 구름을 더 넣고, B에서는 하나를 뺌
-    cx0, cx1, cy0, cy1 = 422, 604, 196, 304
-    cloud = ORIG[cy0:cy1, cx0:cx1].astype(np.float32)
-    cm = np.clip((cloud[..., 0] - 95) / 110, 0, 1)
-    def put_cloud(img, cx, cy, k):
-        hh, ww = cm.shape; nh, nw = int(hh * k), int(ww * k)
-        cs = cv2.resize(cloud, (nw, nh), interpolation=cv2.INTER_AREA); ms = cv2.resize(cm, (nw, nh), interpolation=cv2.INTER_AREA)[..., None]
-        y, x = cy - nh // 2, cx - nw // 2
-        reg = img[y:y + nh, x:x + nw].astype(np.float32)
-        img[y:y + nh, x:x + nw] = (reg * (1 - ms) + cs * ms).clip(0, 255).astype(np.uint8)
-    EXTRA = [(232, 214, 0.62), (300, 470, 0.55), (540, 505, 0.7)]     # 왼쪽 위·왼쪽 아래·오른쪽 아래 칸
-    for i, (x, y, k) in enumerate(EXTRA):
-        put_cloud(a, x, y, k)
-        if i != 1: put_cloud(b, x, y, k)                               # B는 왼쪽 아래 칸 구름이 없음
-    DIFFS.append(('창밖 구름 개수(4개→3개)', 300, 470, 60))
+    # 1) 창밖 단풍나무 (사용자 제안): A·B 모두 창밖에 단풍 가지를 넣고, B는 빨간 잎 하나를 노랑으로
+    #    구름은 지우고(가로 보간), 가지는 유리(하늘색) 부분에만 그려서 창틀 뒤에 있는 것처럼 보이게
+    for img in (a, b):
+        row_fill(img, 422, 604, 196, 304, k=5)
+    spr = np.array(Image.open(os.path.join(RAW, 'maple_v1.png')).convert('RGBA')).astype(np.float32)
+    k = 0.50; WX0, WY0 = 112, 128                                       # 가지 크기·위치 (창 안쪽 128~618, 148~575)
+    spr = cv2.resize(spr, (int(1024 * k), int(1024 * k)), interpolation=cv2.INTER_AREA)
+    sh, sw = spr.shape[:2]
+    # 잎 찾기: 빨간 잎 덩어리 중 창 한 칸 안쪽에 온전히 들어오는 것 하나 고름
+    rgb = spr[..., :3].astype(np.uint8); al = spr[..., 3] > 128
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV_FULL).astype(np.float32); hh = hsv[..., 0] * 360 / 255
+    red = al & ((hh < 12) | (hh > 345)) & (hsv[..., 1] > 120)
+    yel = al & (hh > 38) & (hh < 62) & (hsv[..., 1] > 120)
+    n, lab, st, cen = cv2.connectedComponentsWithStats(red.astype(np.uint8))
+    panes = [(128, 148, 358, 352), (385, 148, 618, 352), (128, 380, 358, 575), (385, 380, 618, 575)]
+    pick = None
+    for i in range(1, n):
+        x, y, w, h, area = st[i]
+        if area < 300: continue
+        gx0, gy0, gx1, gy1 = WX0 + x, WY0 + y, WX0 + x + w, WY0 + y + h
+        if any(px0 + 6 <= gx0 and gx1 <= px1 - 6 and py0 + 6 <= gy0 and gy1 <= py1 - 6 for px0, py0, px1, py1 in panes):
+            if pick is None or abs(cen[i][0] - sw * 0.55) < abs(cen[pick][0] - sw * 0.55): pick = i
+    leaf = (lab == pick)
+    spr_b = spr.copy()
+    for c in range(3):
+        s_ = spr[..., c][leaf]; r_ = spr[..., c][yel]
+        g = r_.std() / max(s_.std(), 1e-3); o = r_.mean() - g * s_.mean()
+        ch = spr_b[..., c]; ch[leaf] = (s_ * g + o).clip(0, 255)
+    def put_tree(img, sp):
+        reg = img[WY0:WY0 + sh, WX0:WX0 + sw].astype(np.float32)
+        sky = (reg[..., 2] > reg[..., 0] + 60).astype(np.float32)         # 유리(하늘) 부분만
+        sky = cv2.GaussianBlur(sky, (0, 0), 0.8)
+        aa = (sp[..., 3] / 255) * sky
+        img[WY0:WY0 + sh, WX0:WX0 + sw] = (reg * (1 - aa[..., None]) + sp[..., :3] * aa[..., None]).clip(0, 255).astype(np.uint8)
+    put_tree(a, spr); put_tree(b, spr_b)
+    lx, ly = WX0 + int(cen[pick][0]), WY0 + int(cen[pick][1])
+    DIFFS.append(('창밖 단풍잎 하나 색(빨강→노랑)', lx, ly, 40))
     # 2) 공구판 오른쪽 위 나사 없애기: 평평한 청록 면 inpaint
     fill_smooth(b, 1459, 173, 30, ring=12)
     DIFFS.append(('공구판 오른쪽 위 나사', 1458, 171, 40))
