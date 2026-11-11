@@ -29,7 +29,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=45';
+const V = '?v=46';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -175,7 +175,7 @@ const SPOT_LV = {
     { x: 201, y: 284, r: 22, name: '가운데 서랍 손잡이' },
   ] },
   hard: { label: '어려움', img: 'spot2', time: 120, hints: 0, penalty: 3, diffs: [
-    { x: 88, y: 43, r: 18, name: '창밖 구름 크기(작아짐)' },
+    { x: 51, y: 81, r: 16, name: '창밖 구름 개수(4개→3개)' },
     { x: 250, y: 29, r: 11, name: '공구판 오른쪽 위 나사' },
     { x: 229, y: 55, r: 17, name: '스포이트 보라·분홍 색' },
     { x: 333, y: 68, r: 13, name: '선반 파란 병 물 높이' },
@@ -184,7 +184,7 @@ const SPOT_LV = {
     { x: 65, y: 186, r: 22, name: '공책 파랑·초록 순서' },
     { x: 272, y: 163, r: 13, name: '공구함 잠금쇠' },
     { x: 249, y: 253, r: 15, name: '세 번째 서랍 손잡이' },
-    { x: 253, y: 196, r: 14, name: '돋보기 손잡이 길이' },
+    { x: 53, y: 136, r: 18, name: '스탠드 불 꺼짐' },
     { x: 186, y: 145, r: 11, name: '노란 시험관 뚜껑 색' },
     { x: 224, y: 95, r: 9, name: '공구판 구멍 하나' },
   ] },

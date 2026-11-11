@@ -99,22 +99,23 @@ DIFFS = []  # (이름, 원본 x, 원본 y, 반지름 원본px)
 
 
 def make():
-    a = ORIG
-    b = a.copy()
-    # 1) 창밖 구름 크기 줄이기 (없애기는 너무 쉬움 → 실제 어려운 틀린그림처럼 '크기 변화')
-    x0, x1, y0, y1 = 422, 604, 196, 304
-    cloud = a[y0:y1, x0:x1].astype(np.float32)
-    row_fill(b, x0, x1, y0, y1, k=5)                                   # 구름 뺀 하늘
-    sky = b[y0:y1, x0:x1].astype(np.float32)
-    m = np.clip((cloud[..., 0] - 95) / 110, 0, 1)                      # 흰 구름 = 빨강 채널이 높음
-    k = 0.72; hh, ww = m.shape; nh, nw = int(hh * k), int(ww * k)
-    cs = cv2.resize(cloud, (nw, nh), interpolation=cv2.INTER_AREA); ms = cv2.resize(m, (nw, nh), interpolation=cv2.INTER_AREA)
-    oy, ox = (hh - nh) // 2 + 6, (ww - nw) // 2                        # 같은 자리(살짝 아래)에
-    out = sky.copy()
-    reg = out[oy:oy + nh, ox:ox + nw]
-    out[oy:oy + nh, ox:ox + nw] = reg * (1 - ms[..., None]) + cs * ms[..., None]
-    b[y0:y1, x0:x1] = out.clip(0, 255).astype(np.uint8)
-    DIFFS.append(('창밖 구름 크기(작아짐)', 512, 250, 70))
+    a = ORIG.copy()
+    b = ORIG.copy()
+    # 1) 창밖 구름 개수 (사용자 제안): 그림 A·B 모두 창문 네 칸에 구름을 더 넣고, B에서는 하나를 뺌
+    cx0, cx1, cy0, cy1 = 422, 604, 196, 304
+    cloud = ORIG[cy0:cy1, cx0:cx1].astype(np.float32)
+    cm = np.clip((cloud[..., 0] - 95) / 110, 0, 1)
+    def put_cloud(img, cx, cy, k):
+        hh, ww = cm.shape; nh, nw = int(hh * k), int(ww * k)
+        cs = cv2.resize(cloud, (nw, nh), interpolation=cv2.INTER_AREA); ms = cv2.resize(cm, (nw, nh), interpolation=cv2.INTER_AREA)[..., None]
+        y, x = cy - nh // 2, cx - nw // 2
+        reg = img[y:y + nh, x:x + nw].astype(np.float32)
+        img[y:y + nh, x:x + nw] = (reg * (1 - ms) + cs * ms).clip(0, 255).astype(np.uint8)
+    EXTRA = [(232, 214, 0.62), (300, 470, 0.55), (540, 505, 0.7)]     # 왼쪽 위·왼쪽 아래·오른쪽 아래 칸
+    for i, (x, y, k) in enumerate(EXTRA):
+        put_cloud(a, x, y, k)
+        if i != 1: put_cloud(b, x, y, k)                               # B는 왼쪽 아래 칸 구름이 없음
+    DIFFS.append(('창밖 구름 개수(4개→3개)', 300, 470, 60))
     # 2) 공구판 오른쪽 위 나사 없애기: 평평한 청록 면 inpaint
     fill_smooth(b, 1459, 173, 30, ring=12)
     DIFFS.append(('공구판 오른쪽 위 나사', 1458, 171, 40))
@@ -123,13 +124,13 @@ def make():
     recolor_like(b, (1335, 268, 1396, 376), 320, 359, (1272, 268, 1334, 376), 250, 300)
     DIFFS.append(('스포이트 보라·분홍 색', 1334, 322, 62))
     # 4) 선반 파란 병 물 높이 낮추기 (병 안 가로 범위만)
-    tx0, tx1, top, S = 1906, 1984, 357, 30
+    tx0, tx1, top, S = 1906, 1984, 357, 52                     # 폰에서 보이게 52px(게임 약 9칸) 낮춤
     src = b.copy()
     b[top + S:top + S + 26, tx0:tx1] = src[top:top + 26, tx0:tx1]
-    b[top:top + S, tx0:tx1] = src[322:322 + S, tx0:tx1]
+    b[top:top + S, tx0:tx1] = src[340, tx0:tx1][None]             # 빈 유리 부분(세로로 같은 모양)으로 채움
     DIFFS.append(('선반 파란 병 물 높이', 1945, 395, 50))
     # 5) 보라 시험관 물 높이 올리기 (선반 위로 보이는 부분)
-    tx0, tx1, top, S = 1257, 1296, 905, 26
+    tx0, tx1, top, S = 1257, 1296, 905, 40
     src = b.copy()
     band = src[top - 2:top + 10, tx0:tx1]                       # 물 표면 띠
     b[top - S - 2:top - S + 10, tx0:tx1] = band
@@ -166,20 +167,17 @@ def make():
     w = np.clip((r + 8 - D) / 16, 0, 1)[..., None]
     b[ys, xs] = (sm[ys, xs].astype(np.float32) + hi * w).clip(0, 255).astype(np.uint8)
     DIFFS.append(('세 번째 서랍 손잡이', 1452, 1466, 56))
-    # 10) 돋보기 손잡이 짧게 (손잡이 기울기를 따라 끝부분을 24px 당기고, 빈 끝은 그 너머 책상으로)
-    # 보안경이 x 1530부터 붙어 있어서 손잡이 끝 너머(1516~1528)만 책상으로 쓰고, 그 오른쪽은 건드리지 않음
-    c, e, N, dy, ry0, ry1, hend = 1452, 1524, 24, 2, 1118, 1184, 1518
-    src = b.copy()
-    clean = src.copy(); col_fill(clean, hend - N - 4, e + 2, ry0, ry1, k=3)   # 손잡이 끝이 빠진 자리 = 위아래 책상 색 잇기
-    for x in range(c, e):
-        b[ry0:ry1, x] = src[ry0 + dy:ry1 + dy, x + N] if x + N < hend else clean[ry0:ry1, x]
-    for i in range(5):                                                  # 오른쪽 경계(원본과 만나는 곳) 부드럽게
-        t = (i + 1) / 6; x = e - 5 + i
-        b[ry0:ry1, x] = (b[ry0:ry1, x] * (1 - t) + src[ry0:ry1, x] * t).astype(np.uint8)
-    for i in range(6):                                                  # 자른 이음매 부드럽게
-        t = (i + 1) / 7
-        b[ry0:ry1, c + i] = (src[ry0:ry1, c + i] * (1 - t) + b[ry0:ry1, c + i] * t).astype(np.uint8)
-    DIFFS.append(('돋보기 손잡이 길이', 1480, 1142, 60))
+    # 10) 스탠드 불 끄기: 갓 안쪽의 밝은 크림색 빛을 꺼진 회색으로 (폰에서도 보이는 큰 밝기 차이)
+    x0, y0, x1, y1 = 212, 728, 404, 852
+    sub = b[y0:y1, x0:x1].astype(np.float32)
+    R, G, B_ = sub[..., 0], sub[..., 1], sub[..., 2]
+    m = ((R > 200) & (G > 188) & (B_ > 120)).astype(np.float32)         # 크림색 빛 + 가운데 흰 빛까지
+    m = cv2.GaussianBlur(cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((5, 5))), (0, 0), 1.2)[..., None]
+    L = sub.mean(2, keepdims=True)
+    off = (118 + (L - 215) * 0.35)                                     # 빛이 꺼진 안쪽 = 어두운 회청색(밝은 점 없이)
+    off = np.concatenate([off * 0.92, off * 1.0, off * 1.02], 2)
+    b[y0:y1, x0:x1] = (sub * (1 - m) + off * m).clip(0, 255).astype(np.uint8)
+    DIFFS.append(('스탠드 불 꺼짐', 308, 790, 90))
     # 11) 노란 시험관 뚜껑 → 주황
     hue_to(b, (1058, 818, 1118, 866), 35, 65, 26, s_min=0.35)
     DIFFS.append(('노란 시험관 뚜껑 색', 1088, 842, 36))
