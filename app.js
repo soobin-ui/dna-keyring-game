@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=49';
+const V = '?v=50';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -811,18 +811,23 @@ function cards() {
     $('cdStatus').classList.remove('warn', 'low', 'last'); pmemo.sec = 0;
     const g = $('cdGrid');
     g.style.setProperty('--cw', w + 'px'); g.style.width = (cols * w + CD_GAP * (cols - 1)) + 'px';
-    g.innerHTML = deck.map((c, i) => `<button class="cd-card up deal" style="animation-delay:${i * 45}ms" data-i="${i}" aria-label="카드 ${i + 1}">
+    g.innerHTML = deck.map((c, i) => `<button class="cd-card deal" style="animation-delay:${i * 45}ms" data-i="${i}" aria-label="카드 ${i + 1}">
       <span class="cd-in"><span class="cd-back">${cdBack}</span>
       <span class="cd-front">${cardIcon(c.k)}<em>${c.n}</em></span></span></button>`).join('');
     $('cdFact').innerHTML = `<b>${lv + 1}단계</b> 카드 ${deck.length}장! 잘 봐 두세요`;
     const els = [...g.querySelectorAll('.cd-card')];
     els.forEach(el => el.addEventListener('click', () => flip(el, els)));
-    // 처음에 잠깐 앞면을 보여주고 뒤집어요
+    // 뒷면으로 한 장씩 놓은 뒤 → 모든 카드를 동시에 앞면으로 → peek 동안 보여 주고 → 동시에 뒷면으로
+    // (놓이면서 앞면이 보이면 먼저 놓인 카드가 더 오래 보여서 공평하지 않음)
+    const FLIP = 350;
     peekT = setTimeout(() => {
-      els.forEach(el => el.classList.remove('up'));
-      $('cdFact').textContent = '같은 그림 2장을 찾아보세요';
-      peekT = setTimeout(() => { lock = false; playing = true; t0 = performance.now(); }, 350);
-    }, (deck.length - 1) * 45 + 320 + L().peek);
+      els.forEach(el => el.classList.add('up'));
+      peekT = setTimeout(() => {
+        els.forEach(el => el.classList.remove('up'));
+        $('cdFact').textContent = '같은 그림 2장을 찾아보세요';
+        peekT = setTimeout(() => { lock = false; playing = true; t0 = performance.now(); }, FLIP);
+      }, FLIP + L().peek);
+    }, (deck.length - 1) * 45 + 320);
   };
   const flip = (el, els) => {
     if (!playing || lock) return;
