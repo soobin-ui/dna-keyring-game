@@ -101,9 +101,20 @@ DIFFS = []  # (이름, 원본 x, 원본 y, 반지름 원본px)
 def make():
     a = ORIG
     b = a.copy()
-    # 1) 창밖 구름 없애기 (폰에서 좌우 뒤집기는 잘 안 보인다는 의견 → 아예 없앰). 하늘은 줄마다 같은 색 → 가로 보간
-    row_fill(b, 422, 604, 196, 304, k=5)
-    DIFFS.append(('창밖 구름 없어짐', 512, 250, 70))
+    # 1) 창밖 구름 크기 줄이기 (없애기는 너무 쉬움 → 실제 어려운 틀린그림처럼 '크기 변화')
+    x0, x1, y0, y1 = 422, 604, 196, 304
+    cloud = a[y0:y1, x0:x1].astype(np.float32)
+    row_fill(b, x0, x1, y0, y1, k=5)                                   # 구름 뺀 하늘
+    sky = b[y0:y1, x0:x1].astype(np.float32)
+    m = np.clip((cloud[..., 0] - 95) / 110, 0, 1)                      # 흰 구름 = 빨강 채널이 높음
+    k = 0.72; hh, ww = m.shape; nh, nw = int(hh * k), int(ww * k)
+    cs = cv2.resize(cloud, (nw, nh), interpolation=cv2.INTER_AREA); ms = cv2.resize(m, (nw, nh), interpolation=cv2.INTER_AREA)
+    oy, ox = (hh - nh) // 2 + 6, (ww - nw) // 2                        # 같은 자리(살짝 아래)에
+    out = sky.copy()
+    reg = out[oy:oy + nh, ox:ox + nw]
+    out[oy:oy + nh, ox:ox + nw] = reg * (1 - ms[..., None]) + cs * ms[..., None]
+    b[y0:y1, x0:x1] = out.clip(0, 255).astype(np.uint8)
+    DIFFS.append(('창밖 구름 크기(작아짐)', 512, 250, 70))
     # 2) 공구판 오른쪽 위 나사 없애기: 평평한 청록 면 inpaint
     fill_smooth(b, 1459, 173, 30, ring=12)
     DIFFS.append(('공구판 오른쪽 위 나사', 1458, 171, 40))
@@ -128,10 +139,19 @@ def make():
     # 6) 초록 펜 → 노란 펜
     hue_to(b, (606, 824, 668, 975), 100, 170, 212, v_gain=1.0, s_gain=1.0)
     DIFFS.append(('초록 펜 → 파란 펜', 636, 880, 48))
-    # 7) 장갑 색
-    # (자 눈금은 폰에서 안 보인다는 의견으로 교체) 장갑 상자의 파란 장갑 → 분홍 장갑 (상자 파란 띠는 그대로)
-    hue_to(b, (2088, 900, 2264, 1030), 188, 228, 334, v_gain=1.05, s_min=0.3)
-    DIFFS.append(('장갑 색(분홍)', 2176, 962, 90))
+    # 7) 공책 파랑·초록 순서 바꾸기 (같은 자리에서 두 색을 서로 바꿈, 종이 부분은 그대로)
+    bx = (240, 1012, 525, 1150)
+    sub = ORIG[bx[1]:bx[3], bx[0]:bx[2]]
+    mb = color_mask(sub, 195, 235, 0.35); mg = color_mask(sub, 95, 165, 0.35)
+    outb = sub.astype(np.float32).copy()
+    for src_m, ref_m in ((mb, mg), (mg, mb)):
+        for c in range(3):
+            s_ = sub[..., c][src_m].astype(np.float32); r_ = sub[..., c][ref_m].astype(np.float32)
+            g = r_.std() / max(s_.std(), 1e-3); o = r_.mean() - g * s_.mean()
+            ch = outb[..., c]; ch[src_m] = (sub[..., c][src_m] * g + o)
+    feather = cv2.GaussianBlur((mb | mg).astype(np.float32), (0, 0), 1.0)[..., None]
+    b[bx[1]:bx[3], bx[0]:bx[2]] = (sub * (1 - feather) + outb.clip(0, 255) * feather).astype(np.uint8)
+    DIFFS.append(('공책 파랑·초록 순서', 380, 1080, 70))
     # 8) 공구함 잠금쇠 없애기: 뚜껑 이음선이 가로라서 가로 보간이 자연스러움
     row_fill(b, 1552, 1628, 910, 1000, k=6)
     DIFFS.append(('공구함 잠금쇠', 1590, 950, 44))
@@ -146,9 +166,20 @@ def make():
     w = np.clip((r + 8 - D) / 16, 0, 1)[..., None]
     b[ys, xs] = (sm[ys, xs].astype(np.float32) + hi * w).clip(0, 255).astype(np.uint8)
     DIFFS.append(('세 번째 서랍 손잡이', 1452, 1466, 56))
-    # 10) 보안경 테 파랑 → 초록
-    hue_to(b, (1518, 1030, 1850, 1112), 190, 240, 48, v_gain=1.12, s_min=0.4)   # 파랑 → 노랑 (남색은 폰에서 구분이 안 됨)
-    DIFFS.append(('보안경 테 색(노랑)', 1684, 1062, 70))
+    # 10) 돋보기 손잡이 짧게 (손잡이 기울기를 따라 끝부분을 24px 당기고, 빈 끝은 그 너머 책상으로)
+    # 보안경이 x 1530부터 붙어 있어서 손잡이 끝 너머(1516~1528)만 책상으로 쓰고, 그 오른쪽은 건드리지 않음
+    c, e, N, dy, ry0, ry1, hend = 1452, 1524, 24, 2, 1118, 1184, 1518
+    src = b.copy()
+    clean = src.copy(); col_fill(clean, hend - N - 4, e + 2, ry0, ry1, k=3)   # 손잡이 끝이 빠진 자리 = 위아래 책상 색 잇기
+    for x in range(c, e):
+        b[ry0:ry1, x] = src[ry0 + dy:ry1 + dy, x + N] if x + N < hend else clean[ry0:ry1, x]
+    for i in range(5):                                                  # 오른쪽 경계(원본과 만나는 곳) 부드럽게
+        t = (i + 1) / 6; x = e - 5 + i
+        b[ry0:ry1, x] = (b[ry0:ry1, x] * (1 - t) + src[ry0:ry1, x] * t).astype(np.uint8)
+    for i in range(6):                                                  # 자른 이음매 부드럽게
+        t = (i + 1) / 7
+        b[ry0:ry1, c + i] = (src[ry0:ry1, c + i] * (1 - t) + b[ry0:ry1, c + i] * t).astype(np.uint8)
+    DIFFS.append(('돋보기 손잡이 길이', 1480, 1142, 60))
     # 11) 노란 시험관 뚜껑 → 주황
     hue_to(b, (1058, 818, 1118, 866), 35, 65, 26, s_min=0.35)
     DIFFS.append(('노란 시험관 뚜껑 색', 1088, 842, 36))
