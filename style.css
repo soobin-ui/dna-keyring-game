@@ -615,3 +615,18 @@ html.on-home body{background:#BFE6D1;background-image:linear-gradient(rgba(255,2
 .hf-row{gap:calc(8px*var(--g))}
 .hf-box,.hf-now{width:calc(46px*var(--g))}
 .hf-th span:last-child{width:calc(46px*var(--g))}
+/* 첫 화면 글자 크기 키움 (11/16, 작은 글자 위주) */
+.hf-top{font-size:calc(13px*var(--g))}
+.hf-ttl h1{font-size:calc(28px*var(--g))}
+.hf .kr-lbl{font-size:calc(13.5px*var(--g))}
+.hf-stat{font-size:calc(15px*var(--g))}
+.hf-th{font-size:calc(13px*var(--g))}
+.hf-tx b{font-size:calc(18px*var(--g))}
+.hf-tx small{font-size:calc(14.5px*var(--g))}
+.hf-now{font-size:calc(14px*var(--g))}
+.hf-sign{font-size:calc(13.5px*var(--g))}
+.hf-sign span{font-size:calc(14.5px*var(--g))}
+.hf .cta .btn{font-size:calc(20px*var(--g))}
+.hf .reset{font-size:calc(15px*var(--g))}
+.hf .foot{font-size:calc(13px*var(--g))}
+.hf-ttl h1{font-size:calc(32px*var(--g))}

@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=59';
+const V = '?v=60';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -947,9 +947,11 @@ function fit() {
   const innerBottom = () => innerEl.getBoundingClientRect().bottom * rectScale();   // 실제 화면 기준 내용 끝 위치
   if (home && innerBottom() < h - 6) {
     const inner = innerEl;
-    const twoLines = () => [...inner.querySelectorAll('.hf-tx b, .hf-tx small, .hf-stat span')].some(el => {
+    // 실험 이름·설명은 한 줄, 큰 제목은 두 줄을 넘으면 안 됨
+    const twoLines = () => [...inner.querySelectorAll('.hf-tx b, .hf-tx small, .hf-stat span, .hf-top span, .hf-ttl h1')].some(el => {
       const r = document.createRange(); r.selectNodeContents(el);
-      return new Set([...r.getClientRects()].map(q => Math.round(q.top))).size > 1;
+      const n = new Set([...r.getClientRects()].filter(q => q.width > 1).map(q => Math.round(q.top))).size;
+      return n > (el.tagName === 'H1' ? 2 : 1);
     });
     let lo = 1, hi = 1.35;
     for (let k = 0; k < 7; k++) {
