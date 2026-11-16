@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=51';
+const V = '?v=52';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -107,34 +107,42 @@ function keyring() {
 /* ================= 첫 화면 ================= */
 function home() {
   const n = nextIdx(), all = n < 0;
-  app.innerHTML = `<div class="home"><div class="home-inner">
-  <div class="top"><span class="live">BIOHEALTH PRECISION LAB</span><span>바이오헬스 정밀검진센터</span></div>
-  <header class="intro-h">
-    <div class="intro-t">
-      <span class="status"><i></i>온수조 처리 중</span>
-      <h1>내 <em>DNA 키링</em>이<br>만들어지는 중!</h1>
-      <p>실험을 하나 끝낼 때마다 키링이 조금씩 완성돼요.</p>
+  // 검진표 번호: 이 휴대폰에서 처음 열 때 정해서 계속 같은 번호
+  if (!store.no) { store.no = String(Math.floor(Math.random() * 9000) + 1000); save(); }
+  const SUB = { spot: '쉬움·어려움 중 골라요', cards: '단계마다 카드가 늘어요', ox: '5문제 + 짧은 해설' };
+  const RES = (id, v) => (id === 'spot' ? (String(v).includes(':') ? '완료' : `${v} 찾음`) : id === 'cards' ? (String(v).endsWith('/5') ? `${v}단계` : '완료') : `${v} 정답`);
+  const doneN = GAMES.filter(g => run[g.id]).length;
+  app.innerHTML = `<div class="home hf"><div class="home-inner">
+  <p class="hf-center">바이오헬스 정밀검진센터<small>DNA 키링 체험 · 기다리는 동안 하는 실험</small></p>
+  <div class="hf-board"><span class="hf-clip" aria-hidden="true"></span>
+    <div class="hf-paper">
+      <div class="hf-top"><span>검진표 No.${store.no}</span><span>CO-SHOW 2026</span></div>
+      <header class="hf-ttl">
+        <h1>내 <em>DNA 키링</em>이<br>만들어지는 중!</h1>
+        <div class="kr" id="kr" role="img" aria-label="키링 진행 ${doneN}/3">
+          <div class="kr-sway">
+            <img class="kr-base" src="img/keyring.png${V}" alt="" width="200" height="300">
+            <img class="kr-fill" id="krFill" src="img/keyring.png${V}" alt="" width="200" height="300">
+            <span class="kr-liquid" id="krLiq"></span>
+          </div>
+          <span class="kr-lbl" id="krLbl"></span>
+        </div>
+      </header>
+      <p class="hf-stat"><i></i>온수조 처리 중 · 기다리는 동안 해 보세요</p>
+      <div class="hf-th"><span>실험 항목</span><span>확인</span></div>
+      <ol class="hf-rows">
+      ${GAMES.map((g, k) => {
+        const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
+        const sub = st === 'ok' ? `✓ ${RES(g.id, run[g.id])}` : SUB[g.id];
+        const chk = st === 'now' ? '<span class="hf-now">지금</span>' : `<span class="hf-box">${st === 'ok' ? '✓' : ''}</span>`;
+        return `<li><button class="hf-row ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
+          <img src="img/${g.icon}.png${V}" alt="" width="46" height="46">
+          <span class="hf-tx"><b>${k + 1}. ${g.title}</b><small>${sub}</small></span>${chk}</button></li>`;
+      }).join('')}
+      </ol>
+      <p class="hf-sign">실험자 확인<span>${all ? '3가지 실험 완료' : ''}</span></p>
     </div>
-    <div class="kr" id="kr" role="img" aria-label="키링 진행 ${GAMES.filter(g => run[g.id]).length}/3">
-      <div class="kr-sway">
-        <img class="kr-base" src="img/keyring.png${V}" alt="" width="200" height="300">
-        <img class="kr-fill" id="krFill" src="img/keyring.png${V}" alt="" width="200" height="300">
-        <span class="kr-liquid" id="krLiq"></span>
-      </div>
-      <span class="kr-lbl" id="krLbl"></span>
-    </div>
-  </header>
-  <ol class="pick steps">
-    ${GAMES.map((g, k) => {
-      const st = run[g.id] ? 'ok' : k === n ? 'now' : 'lock';
-      const v = run[g.id];
-      const note = st === 'ok' ? (g.id === 'spot' && String(v).includes(':') ? '✓ 완료' : (g.id === 'cards' ? (String(v).endsWith('/5') ? `✓ 완료 · ${v}단계` : '✓ 완료') : `✓ 완료 · ${g.id === 'ox' ? `${v} 정답` : `${v} 찾음`}`)) : st === 'now' ? '지금 바로 시작해볼까요?' : `${k}번을 마치면 할 수 있어요`;
-      return `<li><button class="game ${st}" ${st === 'lock' ? 'disabled' : `data-go="#/${g.id}"`}>
-        <span class="ic" style="background:${g.bg}"><img src="img/${g.icon}.png${V}" alt="" width="76" height="76"><b class="no">${st === 'ok' ? '✓' : k + 1}</b></span>
-        <span class="tx"><span class="tt">${g.title}</span><span class="dd">${g.desc}</span><span class="tm">${note}</span></span>
-      </button></li>`;
-    }).join('')}
-  </ol>
+  </div>
   <div class="cta">${all
     ? `<button class="btn" data-go="#/done">최종 결과 보기</button><button class="reset" id="reset">처음부터 다시 하기</button>`
     : `<button class="btn" data-go="#/${GAMES[n].id}">${n === 0 ? '1번 실험 시작하기' : `${n + 1}번 실험 이어서 하기`}</button>${n > 0 ? '<button class="reset" id="reset">처음부터 다시 하기</button>' : ''}`}</div>

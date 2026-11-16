@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>첫 화면 시안 B · 대기 전광판</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Paperlogy,sans-serif;color:#17323A;background:#E4F1EC}
+  .wrap{width:390px;margin:0 auto;padding:16px 16px 14px;min-height:100vh;display:flex;flex-direction:column}
+  /* 병원 벽 사인 */
+  .sign{display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border-radius:12px;padding:9px 12px;box-shadow:0 2px 0 #CFE0D9}
+  .sign .cross{width:20px;height:20px;position:relative}
+  .sign .cross::before,.sign .cross::after{content:'';position:absolute;background:#0E9F8E;border-radius:2px}
+  .sign .cross::before{left:7px;top:0;width:6px;height:20px}.sign .cross::after{top:7px;left:0;width:20px;height:6px}
+  .sign b{font-size:16px;font-weight:800}
+  .hero{display:flex;align-items:center;gap:14px;margin:16px 4px 14px}
+  .hero h1{flex:1;font-size:27px;font-weight:900;line-height:1.25}
+  .hero h1 em{font-style:normal;color:#0E9F8E}
+  .hero p{font-size:14px;color:#4E6C67;font-weight:600;margin-top:6px;display:flex;align-items:center;gap:6px}
+  .hero p i{width:9px;height:9px;border-radius:50%;background:#20C9A8;animation:led 1.2s infinite}
+  @keyframes led{50%{opacity:.3}}
+  .kr{width:84px;text-align:center;flex:none}
+  .kr img{width:58px;filter:grayscale(1)}
+  .kr span{display:block;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;background:#fff;border-radius:99px;padding:2px 0;margin-top:4px}
+  /* 진료 순서 전광판 */
+  .board{background:#132A30;border-radius:18px;padding:12px 12px 6px;box-shadow:0 5px 0 #0A1A1E,inset 0 0 0 3px #22424A}
+  .bh{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:#7FE3D6;padding:0 4px 8px;border-bottom:1px solid #2C4C54}
+  .row{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #22424A}
+  .row:last-child{border-bottom:0}
+  .no{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#5B7A80;text-align:center}
+  .nm{display:flex;align-items:center;gap:10px;color:#C9DCDA;font-size:17px;font-weight:800;line-height:1.2}
+  .nm img{width:40px;height:40px;background:#fff;border-radius:10px;padding:3px}
+  .nm small{display:block;font-size:12px;font-weight:600;color:#7E9A9C;margin-top:2px}
+  .st{font-size:13px;font-weight:800;border-radius:8px;padding:6px 9px;color:#7E9A9C;background:#1C3940}
+  .row.now .no{color:#FFC93B}
+  .row.now .nm{color:#fff}
+  .row.now .st{background:#FFC93B;color:#17323A}
+  .cta{margin-top:14px;display:block;width:100%;padding:16px;border:0;border-radius:16px;background:#FFC93B;color:#17323A;font:inherit;font-size:18px;font-weight:800;box-shadow:0 4px 0 #D9A41A}
+  .foot{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#5B7A75;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sign"><span class="cross"></span><b>바이오헬스 정밀검진센터</b></div>
+  <div class="hero">
+    <div><h1>내 <em>DNA 키링</em>이<br>만들어지는 중!</h1><p><i></i>온수조 처리 중</p></div>
+    <div class="kr"><img src="../img/keyring.png" alt=""><span>0 / 3</span></div>
+  </div>
+  <div class="board">
+    <div class="bh"><span>검사 순서 안내</span><span>CO-SHOW 2026</span></div>
+    <div class="row now"><span class="no">1</span><span class="nm"><img src="../img/icon_spot.png" alt=""><span>틀린그림찾기<small>쉬움·어려움</small></span></span><span class="st">입장하세요</span></div>
+    <div class="row"><span class="no">2</span><span class="nm"><img src="../img/icon_cards.png" alt=""><span>카드 뒤집기<small>5단계</small></span></span><span class="st">대기</span></div>
+    <div class="row"><span class="no">3</span><span class="nm"><img src="../img/icon_ox.png" alt=""><span>DNA OX 퀴즈<small>5문제</small></span></span><span class="st">대기</span></div>
+  </div>
+  <button class="cta">1번 검사실 입장하기</button>
+  <p class="foot">CO-SHOW 2026 · 바이오헬스 혁신융합대학</p>
+</div>
+</body>
+</html>
