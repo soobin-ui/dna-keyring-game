@@ -572,3 +572,35 @@ html.on-home body{background:#BFE6D1;background-image:linear-gradient(rgba(255,2
 .hf .cta{padding:14px 0 0}
 .hf .foot{color:#3E7D73;padding:10px 0 0;text-align:center}
 .hf .reset{color:#2E6F66}
+
+/* 첫 화면이 세로로 긴 폰에서도 꽉 차게: fit()이 정한 --g 배율로 글자·그림·간격을 함께 키움 (줄만 늘이면 빈 공간만 커짐) */
+.hf{--g:1}
+.hf .home-inner{flex:1;padding:calc(16px*var(--g)) 16px calc(14px*var(--g))}
+.hf-center{font-size:calc(16px*var(--g))}
+.hf-center small{font-size:calc(12.5px*var(--g))}
+.hf-board{flex:1;display:flex;flex-direction:column;margin-top:calc(16px*var(--g));padding-top:calc(28px*var(--g))}
+.hf-paper{flex:1;display:flex;flex-direction:column;padding:calc(14px*var(--g)) 14px calc(12px*var(--g))}
+.hf-top{font-size:calc(11.5px*var(--g));padding-bottom:calc(6px*var(--g))}
+.hf-ttl{padding:calc(8px*var(--g)) 0 calc(6px*var(--g))}
+.hf-ttl h1{font-size:calc(25px*var(--g))}
+.hf .kr{width:calc(76px*var(--g))}
+.hf .kr-sway{width:calc(58px*var(--g));height:calc(88px*var(--g))}
+.hf .kr-lbl{font-size:calc(12px*var(--g))}
+.hf-stat{font-size:calc(13.5px*var(--g));padding:calc(9px*var(--g)) 0 calc(2px*var(--g))}
+.hf-th{font-size:calc(11.5px*var(--g));padding:calc(8px*var(--g)) 2px calc(4px*var(--g))}
+.hf-rows{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+.hf-row{padding:calc(9px*var(--g)) 2px;gap:calc(10px*var(--g))}
+.hf-row img{width:calc(46px*var(--g));height:calc(46px*var(--g))}
+.hf-tx b{font-size:calc(16.5px*var(--g))}
+.hf-tx small{font-size:calc(12.5px*var(--g))}
+.hf-box,.hf-now{width:calc(52px*var(--g))}
+.hf-box{height:calc(30px*var(--g));font-size:calc(19px*var(--g))}
+.hf-box::before{width:calc(28px*var(--g));height:calc(28px*var(--g))}
+.hf-now{font-size:calc(12.5px*var(--g));padding:calc(4px*var(--g)) 0}
+.hf-sign{font-size:calc(12px*var(--g));margin-top:calc(10px*var(--g))}
+.hf-sign span{font-size:calc(13px*var(--g))}
+.hf .cta{padding-top:calc(14px*var(--g))}
+.hf .cta .btn{padding:calc(16px*var(--g));font-size:calc(18px*var(--g))}
+.hf .reset{font-size:calc(14px*var(--g))}
+.hf .foot{font-size:calc(12px*var(--g));padding-top:calc(10px*var(--g))}
+.hf-stat span{flex:1;min-width:0}

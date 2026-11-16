@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=52';
+const V = '?v=57';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -128,7 +128,7 @@ function home() {
           <span class="kr-lbl" id="krLbl"></span>
         </div>
       </header>
-      <p class="hf-stat"><i></i>온수조 처리 중 · 기다리는 동안 해 보세요</p>
+      <p class="hf-stat"><i></i><span>온수조 처리 중 · 기다리는 동안 해 보세요</span></p>
       <div class="hf-th"><span>실험 항목</span><span>확인</span></div>
       <ol class="hf-rows">
       ${GAMES.map((g, k) => {
@@ -921,7 +921,12 @@ function fit() {
   let z = w / BASE_W;
   // offsetHeight는 소수점을 버려서 1px 넘칠 수 있음 → 실제 높이 + 1px 여유로 계산
   const hOf = el => el.getBoundingClientRect().height + 1;
-  if (home) z = Math.min(z, h / hOf(home.querySelector('.home-inner')));
+  if (home) {
+    const inner = home.querySelector('.home-inner');
+    home.style.setProperty('--g', 1);
+    const H0 = hOf(inner);
+    z = Math.min(z, h / H0);
+  }
   else if (app.querySelector('[data-fit]')) z = Math.min(z, h / hOf(app));
   // 결과 창이 떠 있으면 창 전체(아래 버튼까지)가 한 화면에 들어오게
   const slip = app.querySelector('.overlay:not(.peek) .slip');
@@ -936,6 +941,24 @@ function fit() {
       z = z * h / sh * 0.995;
       app.style.zoom = z;
     }
+  }
+  // 세로로 긴 폰: 첫 화면 내용을 통째로 키움(글자·그림·간격 비율 유지, 최대 1.35배).
+  // 배율을 적용한 실제 화면에서 재야 사파리 글자 폭 차이까지 반영됨 → 화면을 넘지 않고 글자가 두 줄이 되지 않을 때까지만
+  const innerEl = home && home.querySelector('.home-inner');
+  const innerBottom = () => innerEl.getBoundingClientRect().bottom * rectScale();   // 실제 화면 기준 내용 끝 위치
+  if (home && innerBottom() < h - 6) {
+    const inner = innerEl;
+    const twoLines = () => [...inner.querySelectorAll('.hf-tx b, .hf-tx small, .hf-stat span')].some(el => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      return new Set([...r.getClientRects()].map(q => Math.round(q.top))).size > 1;
+    });
+    let lo = 1, hi = 1.35;
+    for (let k = 0; k < 7; k++) {
+      const g = (lo + hi) / 2;
+      home.style.setProperty('--g', g);
+      if (innerBottom() <= h - 1 && !twoLines()) lo = g; else hi = g;
+    }
+    home.style.setProperty('--g', lo);
   }
   // 확대·축소한 뒤 높이가 화면과 딱 맞게 (소수점 때문에 1~3px 스크롤이 생기지 않도록 내림)
   const minH = Math.floor(h / z) + 'px';
