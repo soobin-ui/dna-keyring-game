@@ -604,3 +604,14 @@ html.on-home body{background:#BFE6D1;background-image:linear-gradient(rgba(255,2
 .hf .reset{font-size:calc(14px*var(--g))}
 .hf .foot{font-size:calc(12px*var(--g));padding-top:calc(10px*var(--g))}
 .hf-stat span{flex:1;min-width:0}
+
+/* 위 센터 이름 줄을 빼서(11/16) 집게 자리만 남김 */
+.hf .home-inner{padding-top:calc(22px*var(--g))}
+.hf-board{margin-top:0}
+/* 가로 여백을 줄여 글자 폭을 넓힘 → 세로로 긴 폰에서 더 크게 키울 수 있음 */
+.hf .home-inner{padding-left:10px;padding-right:10px}
+.hf-board{padding-left:8px;padding-right:8px;padding-bottom:8px}
+.hf-paper{padding-left:12px;padding-right:12px}
+.hf-row{gap:calc(8px*var(--g))}
+.hf-box,.hf-now{width:calc(46px*var(--g))}
+.hf-th span:last-child{width:calc(46px*var(--g))}

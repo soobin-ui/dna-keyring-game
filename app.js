@@ -36,7 +36,7 @@ function pauseWhenHidden(getT0, setT0, running) {
 }
 
 const C = { teal: '#0E9F8E', coral: '#EF5350' };
-const V = '?v=57';
+const V = '?v=59';
 const GAMES = [
   { id: 'spot', code: 'EXP-01', icon: 'icon_spot', bg: '#E2F1FF', title: '틀린그림찾기', desc: '실험실 그림 두 장에서 다른 곳 찾기 (쉬움·어려움)', time: '약 5–7분' },
   { id: 'cards', code: 'EXP-02', icon: 'icon_cards', bg: '#FFF1DC', title: '실험실 카드 뒤집기', desc: '단계마다 늘어나는 카드에서 같은 그림 짝 맞추기', time: '약 5–8분' },
@@ -113,10 +113,9 @@ function home() {
   const RES = (id, v) => (id === 'spot' ? (String(v).includes(':') ? '완료' : `${v} 찾음`) : id === 'cards' ? (String(v).endsWith('/5') ? `${v}단계` : '완료') : `${v} 정답`);
   const doneN = GAMES.filter(g => run[g.id]).length;
   app.innerHTML = `<div class="home hf"><div class="home-inner">
-  <p class="hf-center">바이오헬스 정밀검진센터<small>DNA 키링 체험 · 기다리는 동안 하는 실험</small></p>
   <div class="hf-board"><span class="hf-clip" aria-hidden="true"></span>
     <div class="hf-paper">
-      <div class="hf-top"><span>검진표 No.${store.no}</span><span>CO-SHOW 2026</span></div>
+      <div class="hf-top"><span>검진표 No.${store.no}</span><span>CO-SHOW 바이오헬스 2026</span></div>
       <header class="hf-ttl">
         <h1>내 <em>DNA 키링</em>이<br>만들어지는 중!</h1>
         <div class="kr" id="kr" role="img" aria-label="키링 진행 ${doneN}/3">
